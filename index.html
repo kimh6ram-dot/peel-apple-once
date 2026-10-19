@@ -22,22 +22,18 @@
     <p class="hint ui-hidden" id="hint"></p>
     <pre class="debug-readout ui-hidden" id="debug-readout"></pre>
     <p class="watermark ui-hidden" id="watermark">@ccojik.dh</p>
-    <!-- 방향 패드: 왼쪽 엄지 [↶ ↷](기울기) / [← →](사과 쪽·반대쪽), 오른쪽 엄지 ↑↓(높이). 버튼마다 pointerId 를 따로 잡아 멀티터치 조합 -->
+    <!-- 조작 패드: 왼쪽 엄지 = 회전 [↶ ↷](Q/W), 오른쪽 엄지 = 상하좌우 십자(↑ / ← ↓ →). 버튼마다 pointerId 를 따로 잡아 멀티터치 조합 -->
     <div class="pad ui-hidden" id="pad">
-      <div class="pad-group pad-left">
-        <div class="pad-row">
-          <button class="pad-btn" type="button" data-dir="ccw" aria-label="반시계 회전 (Q)">↶</button>
-          <button class="pad-btn" type="button" data-dir="cw" aria-label="시계 회전 (W)">↷</button>
-        </div>
-        <div class="pad-row">
-          <button class="pad-btn" type="button" data-dir="left" aria-label="왼쪽">←</button>
-          <button class="pad-btn" type="button" data-dir="right" aria-label="오른쪽">→</button>
-        </div>
+      <div class="pad-group pad-rot">
+        <button class="pad-btn" type="button" data-dir="ccw" aria-label="반시계 회전 (Q)">↶</button>
+        <button class="pad-btn" type="button" data-dir="cw" aria-label="시계 회전 (W)">↷</button>
       </div>
       <span class="pad-center"></span>
-      <div class="pad-group pad-vertical">
-        <button class="pad-btn" type="button" data-dir="up" aria-label="위">↑</button>
-        <button class="pad-btn" type="button" data-dir="down" aria-label="아래">↓</button>
+      <div class="pad-dpad">
+        <button class="pad-btn pad-up" type="button" data-dir="up" aria-label="위">↑</button>
+        <button class="pad-btn pad-left" type="button" data-dir="left" aria-label="왼쪽">←</button>
+        <button class="pad-btn pad-down" type="button" data-dir="down" aria-label="아래">↓</button>
+        <button class="pad-btn pad-right" type="button" data-dir="right" aria-label="오른쪽">→</button>
       </div>
     </div>
 

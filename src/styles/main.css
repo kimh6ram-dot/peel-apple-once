@@ -53,7 +53,7 @@
   --button-height: 48px;
   --button-height-secondary: 44px;
 
-  --pad-btn-w: 64px;
+  --pad-btn-w: min(64px, calc((min(100vw, var(--app-max-width)) - 72px) / 5));   /* 좁은 폰(320)에서도 [회전 2] + [십자 3열] 이 한 줄에 들어가게 */
   --pad-btn-h: 52px;
 }
 
@@ -158,9 +158,13 @@ button { font-family: inherit; cursor: pointer; }
   background: var(--bg);
 }
 .pad-group { display: flex; gap: 8px; }
-.pad-vertical { flex-direction: column; }
-.pad-left { flex-direction: column; }      /* [↶ ↷] 위, [← →] 아래 — 높이는 오른쪽 ↑↓ 묶음과 같다(패드 높이 불변) */
-.pad-row { display: flex; gap: 8px; }
+/* 왼쪽: 회전 두 개(십자 아랫줄과 같은 높이), 오른쪽: 상하좌우 십자 — ↑ 가운데 윗줄, ← ↓ → 아랫줄 */
+.pad-rot { align-self: end; }
+.pad-dpad { display: grid; grid-template-columns: repeat(3, var(--pad-btn-w)); grid-template-rows: repeat(2, var(--pad-btn-h)); gap: 8px; }
+.pad-up { grid-column: 2; grid-row: 1; }
+.pad-left { grid-column: 1; grid-row: 2; }
+.pad-down { grid-column: 2; grid-row: 2; }
+.pad-right { grid-column: 3; grid-row: 2; }
 .pad-btn {
   width: var(--pad-btn-w);
   height: var(--pad-btn-h);
@@ -327,7 +331,7 @@ button { font-family: inherit; cursor: pointer; }
 
 /* ---------- 세로가 짧은 화면(예: 320×568) — 같은 규격을 축소 ---------- */
 @media (max-height: 640px) {
-  :root { --preview-height: 150px; --screen-top: 16px; --screen-bottom: 20px; --gap-preview-title: 12px; --gap-title-content: 12px; --gap-content-cta: 20px; --button-height: 42px; --button-height-secondary: 40px; --info-body-height: 90px; --fruit-cell-height: 88px; --fruit-img-height: 40px; --pad-btn-h: 44px; --pad-btn-w: 60px; }
+  :root { --preview-height: 150px; --screen-top: 16px; --screen-bottom: 20px; --gap-preview-title: 12px; --gap-title-content: 12px; --gap-content-cta: 20px; --button-height: 42px; --button-height-secondary: 40px; --info-body-height: 90px; --fruit-cell-height: 88px; --fruit-img-height: 40px; --pad-btn-h: 44px; --pad-btn-w: min(60px, calc((min(100vw, var(--app-max-width)) - 72px) / 5)); }
   .slot-title.main { font-size: 24px; }
   .slot-actions { gap: 6px; }
   .pad { padding-top: 8px; }
