@@ -76,6 +76,7 @@ const URL = 'file:///C:/Users/thkim/Desktop/code-work/04_꼬직/261014_apple gam
   await page.reload(); await page.waitForFunction(() => window.AP_READY === true, null, { timeout: 60000 }); await page.evaluate(() => AP_DEBUG.setLegacy(true));   /* 기계 동작 테스트: 호환 모드를 명시(제품 기본은 실제 규칙) */
   await page.evaluate(() => AP_DEBUG.setPaused(true));
   const sc = await playTo({ dur: 40, depthFrac: 0.6 }); await page.waitForTimeout(150);
+  await page.evaluate(() => { AP.CONFIG.SHARE.URL = ''; AP.share.refresh(); });      // 배포 주소가 설정된 제품 기본값과 별개로, 미설정 상태의 안전장치(버튼 비활성)를 검증
   const off = await page.evaluate(() => ({ disabled: document.getElementById('btn-challenge').disabled, note: document.getElementById('challenge-note').textContent, hidden: document.getElementById('challenge-note').hidden, url: AP.CONFIG.SHARE.URL }));
   ok('공개 URL 미설정(' + JSON.stringify(off.url) + '): 버튼 비활성 + "' + off.note + '" 표시(임의 주소 없음)', off.disabled && !off.hidden && off.url === '' && /테스트 상태/.test(off.note), off);
   await page.evaluate(() => { AP.CONFIG.SHARE.URL = 'https://example.test/apple/'; AP.share.refresh(); });

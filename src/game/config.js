@@ -133,7 +133,7 @@ AP.CONFIG = {
   },
   /* 친구 공유: 실제 공개 URL 이 정해지면 URL 만 채운다. 비어 있으면 공유 버튼은 비활성(테스트 상태)이고 임의 주소를 만들지 않는다 */
   SHARE: {
-    URL: '',
+    URL: 'https://kimh6ram-dot.github.io/peel-apple-once/',   // 배포 주소(GitHub Pages). 공유 링크 = 이 주소 + ?fruit=과일id
     TITLE: '나보다 잘 깎을 수 있어?',
     TEXT: ['나는 한 번에 깎으세요 [{fruit}]에서 {score}점 나왔어.', '너는 몇 점 나올지 궁금한데?'].join('\n'),
     COPIED: '도전장 링크가 복사됐어요!',
