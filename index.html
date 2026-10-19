@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>사과 깎기</title>
+<meta property="og:title" content="사과 깎기">
+<meta property="og:description" content="껍질만 얇게 깎으세요. 너무 깊게 깎으면 과육이 파입니다.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="src/styles/main.css" />
+</head>
+<body>
+  <div class="app screen-on" id="app">
+    <!-- PLAY 스테이지(WebGL: 사과 3D + 칼 스프라이트) + 최소 HUD + 하단 방향 패드. INTRO/RESULT 는 흰 전체 화면으로 위에 덮인다 -->
+    <canvas id="stage"></canvas>
+    <div class="layout-probe" id="layout-probe" aria-hidden="true"></div>
+    <div class="hud ui-hidden" id="hud">
+      <span class="hud-item"><span class="hud-label">껍질 제거</span><span class="hud-value" id="hud-peel">0%</span></span>
+      <span class="hud-item"><span class="hud-label">과육 손실</span><span class="hud-value" id="hud-flesh">0%</span></span>
+      <span class="hud-item"><span class="hud-label">연속 껍질</span><span class="hud-value" id="hud-ribbon">0cm</span></span>
+    </div>
+    <p class="hint ui-hidden" id="hint"></p>
+    <pre class="debug-readout ui-hidden" id="debug-readout"></pre>
+    <p class="watermark ui-hidden" id="watermark">@ccojik.dh</p>
+    <!-- 방향 패드: 왼쪽 엄지 [↶ ↷](기울기) / [← →](사과 쪽·반대쪽), 오른쪽 엄지 ↑↓(높이). 버튼마다 pointerId 를 따로 잡아 멀티터치 조합 -->
+    <div class="pad ui-hidden" id="pad">
+      <div class="pad-group pad-left">
+        <div class="pad-row">
+          <button class="pad-btn" type="button" data-dir="ccw" aria-label="반시계 회전 (Q)">↶</button>
+          <button class="pad-btn" type="button" data-dir="cw" aria-label="시계 회전 (W)">↷</button>
+        </div>
+        <div class="pad-row">
+          <button class="pad-btn" type="button" data-dir="left" aria-label="왼쪽">←</button>
+          <button class="pad-btn" type="button" data-dir="right" aria-label="오른쪽">→</button>
+        </div>
+      </div>
+      <span class="pad-center"></span>
+      <div class="pad-group pad-vertical">
+        <button class="pad-btn" type="button" data-dir="up" aria-label="위">↑</button>
+        <button class="pad-btn" type="button" data-dir="down" aria-label="아래">↓</button>
+      </div>
+    </div>
+
+    <!-- INTRO : 비주얼(실제 장면 미리보기) → 제목 → 설명 → [시작하기] -->
+    <section id="screen-intro" class="screen active">
+      <div class="slot-visual"><canvas id="intro-canvas"></canvas></div>
+      <h1 class="slot-title main">한번에 깎으세요</h1>
+      <div class="slot-body">
+        <p class="intro-copy">껍질만 얇게 한번에 깎으세요.
+너무 깊게 깎으면 과육이 파입니다.</p>
+      </div>
+      <div class="slot-actions">
+        <button id="btn-start" class="cta">시작하기</button>
+      </div>
+    </section>
+
+    <!-- FRUIT SELECT : 선택한 과일 미리보기 → 제목 → 2×2 그리드 → [다음]  ("고르는 화면" 그룹 — MINIGAME_SYSTEM §37-2A) -->
+    <section id="screen-select" class="screen">
+      <div class="slot-visual"><div class="select-preview" id="select-preview"></div></div>
+      <h2 class="slot-title" id="select-title">과일을 선택하세요</h2>
+      <div class="slot-body"><div class="fruit-grid" id="fruit-grid"></div></div>
+      <div class="slot-actions"><button id="btn-select-next" class="cta" type="button">시작하기</button><p class="result-note" id="select-note" hidden></p></div>
+    </section>
+
+    <!-- RESULT : AppShell 구조 = [비주얼(최종 과일)] → [제목] → [본문: 점수·평가·세부 기록] → [주요 CTA = 친구에게 도전장 보내기, 아래에 저장·다시 깎기].
+         주요 CTA 는 INTRO·SELECT 의 [시작하기] 와 같은 슬롯(--cta-top) — 본문은 공통 min-height 안에서 세로 중앙 정렬 -->
+    <section id="screen-result" class="screen">
+      <div class="slot-visual result-visual"><canvas id="result-canvas"></canvas></div>
+      <h2 class="slot-title result-label" id="result-title">사과 깎기 완료!</h2>
+      <div class="slot-body result-body">
+        <div class="result-score" id="result-score">0</div>
+        <div class="result-grade" id="result-grade"></div>
+        <div class="result-comment" id="result-detail"></div>
+      </div>
+      <div class="slot-actions">
+        <button id="btn-challenge" class="cta" type="button">친구에게 도전장 보내기</button>
+        <p class="result-note" id="challenge-note" hidden></p>
+        <div class="result-secondary">
+          <button id="btn-save" class="btn-secondary" type="button">내 사과 저장</button>
+          <button id="btn-restart" class="btn-secondary" type="button">다시 깎기</button>
+        </div>
+      </div>
+      <p class="result-mark">@ccojik.dh</p>
+    </section>
+    <p class="toast" id="toast" hidden></p>
+  </div>
+
+  <!-- 순서 고정: three → config → assets-data → assets → rotation → apple → scene → knife → blade → cutting → input → play → main -->
+  <script src="vendor/three.min.js"></script>
+  <script src="src/game/config.js"></script>
+  <script src="src/game/assets-data.js"></script>
+  <script src="src/game/fruits.js"></script>
+  <script src="src/game/assets.js"></script>
+  <script src="src/game/rotation.js"></script>
+  <script src="src/game/apple.js"></script>
+  <script src="src/game/scene.js"></script>
+  <script src="src/game/knife.js"></script>
+  <script src="src/game/blade.js"></script>
+  <script src="src/game/cutting.js"></script>
+  <script src="src/game/ribbon.js"></script>
+  <script src="src/game/scoring.js"></script>
+  <script src="src/game/share.js"></script>
+  <script src="src/game/input.js"></script>
+  <script src="src/game/play.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>

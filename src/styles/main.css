@@ -1,0 +1,334 @@
+/* 사과 깎기 — 흑백 미니멀 UI. 토큰·슬롯·버튼 규칙은 주차하기(260917_parking) → 아이스크림 쌓기와 동일하게 복제.
+ *
+ * ScreenShell: .screen(전체 프레임) └ .slot-visual / .slot-title / .slot-body / .slot-actions (모두 --content-width 정렬)
+ * 세로 리듬: --screen-top → [PREVIEW 320×200, 1px 테두리] → --gap-preview-title → [TITLE] → --gap-title-content → [CONTENT] → --gap-content-cta → [CTA 48px]
+ * INTRO/RESULT 처럼 본문이 짧은 "보여주는 화면"은 묶음 전체를 위:아래 1:2 로 중앙보다 살짝 위에(MINIGAME_SYSTEM §37).
+ * 금지: position:fixed / margin-top:auto / space-between 으로 CTA 바닥 고정, 카드 UI, 큰 그림자.
+ * 스테이지 배경은 흰색(게임 오브젝트만 컬러). HUD/패드는 검정 글씨·1px 검정 테두리. */
+:root {
+  --bg: #FFFFFF;
+  --text: #000000;
+  --muted: #777777;
+  --border: #000000;
+  --soft-border: #DDDDDD;
+  --disabled: #E5E5E5;
+
+  --app-max-width: 430px;
+  --content-width: 320px;
+  --preview-width: var(--content-width);
+  --preview-height: 200px;
+
+  --screen-top: 32px;
+  --screen-bottom: 28px;
+  --gap-preview-title: 22px;
+  --gap-title-content: 20px;
+  --gap-content-cta: 28px;
+
+  --info-body-height: 96px;
+  --fruit-cell-height: 104px;
+  --fruit-img-height: 52px;
+  --title-h: 37px;                 /* 모든 화면 제목 슬롯 높이(INTRO·SELECT·RESULT 공통 예약) */
+
+  /* ── 세로 앵커: "메인 비주얼 프레임의 위치"를 모든 화면이 공유한다 ──
+   * INTRO 묶음(비주얼~버튼)을 위:아래 1:2 로 놓은 위치가 기준(= 이전의 ::before/::after 1:2 스페이서와 수학적으로 같다).
+   * SELECT·RESULT 는 비주얼 프레임 top 을 같은 앵커에 맞추고, PLAY 는 과일 중심을 앵커 비주얼 중심에 맞춘다(main.js 가 #layout-probe 로 읽는다).
+   * 화면 높이가 모자라 못 맞추는 화면은 같은 규칙으로 클램프된다(아래 각 화면). */
+  --grid-h: calc(var(--fruit-cell-height) * 2 + 8px);
+  --b-anchor: calc(var(--preview-height) + var(--gap-preview-title) + var(--title-h) + var(--gap-title-content) + var(--info-body-height) + var(--gap-content-cta) + var(--button-height));   /* 앵커 정의용(과거 INTRO 묶음 높이) — 비주얼 위치를 바꾸지 않으려고 그대로 둔다 */
+  --b-select: calc(var(--preview-height) + var(--gap-preview-title) + var(--title-h) + var(--gap-title-content) + var(--grid-h) + var(--gap-content-cta) + var(--button-height));
+  --anchor-top: max(var(--screen-top), calc(var(--screen-top) + (100dvh - var(--screen-top) - var(--screen-bottom) - var(--b-anchor)) / 3));
+  --anchor-visual-cy: calc(var(--anchor-top) + var(--preview-height) / 2);
+
+  /* ── 기준 = 원래 메인(INTRO) 화면. 주요 CTA 슬롯 --cta-top 은 INTRO [시작하기] 의 원래 상단 Y ──
+   * INTRO 는 원래 구조 그대로(비주얼 200 → 22 → 제목 37 → 20 → 본문 96 → 28 → 버튼 48, 묶음 전체 1:2 위치 = --anchor-top).
+   * SELECT·RESULT 는 INTRO 가 기준: 주요 버튼 상단을 --cta-top 에 맞추고, 각 화면의 콘텐츠가 그 위에 놓이도록 시작점을 정한다
+   * (콘텐츠가 더 길면 비주얼이 INTRO 보다 위로 올라가고, --min-top 이 한계 — 못 맞추는 화면 높이에서는 버튼이 그만큼 아래로 간다).
+   * position:fixed / margin-top:auto 없이 같은 좌표가 나온다. */
+  --min-top: 8px;                  /* 선택·결과 화면 시작점의 상단 최소 여백 */
+  --result-body-h: 106px;          /* RESULT 본문 슬롯(점수 50 + 평가 30 + 세부 기록 26) */
+  --cta-top: calc(var(--anchor-top) + var(--preview-height) + var(--gap-preview-title) + var(--title-h) + var(--gap-title-content) + var(--info-body-height) + var(--gap-content-cta));
+  --select-top: max(var(--min-top), calc(var(--cta-top) - var(--preview-height) - var(--gap-preview-title) - var(--title-h) - var(--gap-title-content) - var(--grid-h) - var(--gap-content-cta)));
+  --result-top: max(var(--min-top), calc(var(--cta-top) - var(--preview-height) - var(--gap-preview-title) - var(--title-h) - var(--gap-title-content) - var(--result-body-h) - var(--gap-content-cta)));
+
+  --button-height: 48px;
+  --button-height-secondary: 44px;
+
+  --pad-btn-w: 64px;
+  --pad-btn-h: 52px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.app {
+  position: relative;
+  width: 100%;
+  max-width: var(--app-max-width);
+  height: 100vh;
+  height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--bg);
+}
+button { font-family: inherit; cursor: pointer; }
+.ui-hidden { visibility: hidden; pointer-events: none; }
+
+/* ---------- PLAY 스테이지 ---------- */
+#stage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+/* 상단 HUD: 남은 시간 · 껍질 제거 · 과육 손실 (라벨 12px muted / 값 15px 700) — 점수 자체는 노출하지 않는다 */
+.hud {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  pointer-events: none;
+  z-index: 10;
+}
+.hud-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.hud-label { font-size: 12px; font-weight: 500; color: var(--muted); }
+.hud-value { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hint {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 66px;
+  text-align: center;
+  font-size: clamp(10px, 3.1vw, 13px);
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  z-index: 10;
+}
+/* 디버그 읽기(#debug 일 때만): 현재 절삭 섹터·행·깊이·집계 */
+.debug-readout {
+  position: absolute;
+  left: 12px;
+  top: 88px;
+  margin: 0;
+  font: 500 11px/1.4 ui-monospace, Menlo, Consolas, monospace;
+  color: #444444;
+  white-space: pre;
+  pointer-events: none;
+  z-index: 10;
+}
+/* 계정 워터마크 — 플레이 영역 좌하단(패드 바로 위). 칼은 오른쪽이라 겹치지 않는다 */
+.watermark {
+  position: absolute;
+  left: 16px;
+  bottom: calc(var(--pad-btn-h) * 2 + 8px + 10px + 12px + env(safe-area-inset-bottom, 0px) + 6px);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* 하단 방향 패드: [← →] ... [완료] ... [↑ / ↓]. 버튼은 1px 검정 테두리, 누르면 검정 반전 */
+.pad {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  touch-action: none;
+  z-index: 10;
+  background: var(--bg);
+}
+.pad-group { display: flex; gap: 8px; }
+.pad-vertical { flex-direction: column; }
+.pad-left { flex-direction: column; }      /* [↶ ↷] 위, [← →] 아래 — 높이는 오른쪽 ↑↓ 묶음과 같다(패드 높이 불변) */
+.pad-row { display: flex; gap: 8px; }
+.pad-btn {
+  width: var(--pad-btn-w);
+  height: var(--pad-btn-h);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background: #FFFFFF;
+  color: #000000;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.pad-btn.is-down, .pad-btn:active { background: #000000; color: #FFFFFF; }
+.pad-center { justify-self: center; }
+/* "완료" — 형제 게임의 pill 버튼 규격 */
+.pill-btn {
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: #000000;
+  font-size: 14px;
+  font-weight: 700;
+}
+.pill-btn:active { background: #000000; color: #FFFFFF; }
+
+/* ---------- 화면 공통(주차하기와 동일) ---------- */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--screen-top) 20px var(--screen-bottom);
+  background: var(--bg);
+  z-index: 20;
+}
+.screen.active { display: flex; }
+/* 화면 전환 애니메이션은 쓰지 않는다. 화면은 항상 불투명한 흰 배경이고, 메인·선택·결과 화면이 켜져 있는 동안 아래의 3D 스테이지(플레이 크기의 사과·칼)는 숨긴다 —
+ * 예전에 넣었던 opacity fade 는 투명해지는 동안 이 스테이지의 큰 사과가 비쳐 "새로고침/전환 때 사과가 크게 나타났다 줄어드는" 플래시를 만들었다. */
+.app.screen-on #stage { visibility: hidden; }
+/* 측정용 프로브: 높이 = INTRO 비주얼 프레임 중심 Y(--anchor-visual-cy). main.js 가 플레이 화면의 과일 중심을 여기에 맞춘다 */
+.layout-probe { position: absolute; left: 0; top: 0; width: 1px; height: var(--anchor-visual-cy); visibility: hidden; pointer-events: none; }
+
+.slot-visual {
+  position: relative;
+  width: 100%;
+  max-width: var(--preview-width);
+  height: var(--preview-height);
+  flex-shrink: 0;
+  border: 1px solid #000000;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.slot-visual > canvas { display: block; width: 100%; height: 100%; }
+.slot-title {
+  width: 100%;
+  max-width: var(--content-width);
+  margin-top: var(--gap-preview-title);
+  min-height: var(--title-h);
+  flex-shrink: 0;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
+}
+.slot-title.main { font-size: 28px; }
+.slot-body {
+  width: 100%;
+  max-width: var(--content-width);
+  margin-top: var(--gap-title-content);
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.slot-body:empty { display: none; }
+.slot-actions {
+  width: 100%;
+  max-width: var(--content-width);
+  margin-top: var(--gap-content-cta);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* INTRO: 원래 레이아웃(묶음 전체를 위:아래 1:2, = --anchor-top). SELECT·RESULT 는 주요 CTA 를 INTRO 의 [시작하기] 와 같은 Y(--cta-top)에 두도록 시작점만 다르다 */
+#screen-intro { justify-content: flex-start; padding-top: var(--anchor-top); }
+#screen-select { justify-content: flex-start; padding-top: var(--select-top); }
+#screen-result { justify-content: flex-start; padding-top: var(--result-top); }
+/* RESULT: 내용이 화면보다 길면 압축하지 않고 자연스럽게 세로 스크롤 */
+#screen-result { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+#screen-result::-webkit-scrollbar { display: none; }
+#screen-result > * { flex-shrink: 0; }
+/* INTRO 는 본문 높이를 같게 예약해 비주얼·제목·CTA 가 같은 y 에 온다(§37 R3·R4) */
+#screen-intro .slot-body { min-height: var(--info-body-height); justify-content: flex-start; }
+#screen-result .slot-body { height: var(--result-body-h); justify-content: center; }
+/* 과일 선택 2×2 그리드 — 흑백, 선택 = 검정 테두리 */
+.fruit-grid { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.fruit-cell { height: var(--fruit-cell-height); padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: #FFFFFF; border: 1px solid var(--soft-border); border-radius: 2px; color: #000000; }
+.fruit-cell.is-selected { border-color: #000000; box-shadow: inset 0 0 0 1px #000000; }
+.select-preview { position: relative; width: 100%; height: 100%; overflow: hidden; }
+.fruit-cell .fruit-img { position: relative; overflow: hidden; width: 100%; height: var(--fruit-img-height); display: flex; align-items: center; justify-content: center; }
+.fruit-cell img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.fruit-cell .fruit-name { font-size: 15px; font-weight: 800; line-height: 1.2; }
+.fruit-cell[disabled] { opacity: 0.55; cursor: default; }
+.intro-copy {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+  white-space: pre-line;
+}
+
+/* ---------- 버튼(주차하기와 동일) ---------- */
+.cta {
+  width: 100%;
+  height: var(--button-height);
+  background: #000000;
+  color: #FFFFFF;
+  border: 1px solid #000000;
+  border-radius: 2px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.cta:active { background: #FFFFFF; color: #000000; }
+.cta[disabled] { opacity: 0.5; pointer-events: none; }
+.btn-secondary {
+  width: 100%;
+  height: var(--button-height-secondary);
+  background: #FFFFFF;
+  color: #000000;
+  border: 1px solid #000000;
+  border-radius: 2px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.btn-secondary:active { background: #000000; color: #FFFFFF; }
+.muted { color: var(--muted); }
+
+/* ---------- RESULT ---------- */
+.result-secondary { display: flex; gap: 8px; }
+.result-secondary .btn-secondary { flex: 1 1 0; min-width: 0; width: auto; }
+.result-comment { text-align: center; }
+.result-note { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.4; }
+.result-mark { margin-top: 12px; font-size: 12px; font-weight: 500; color: var(--muted); text-align: center; flex-shrink: 0; }
+.toast { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: 86%; padding: 10px 16px; background: #000; color: #fff; font-size: 14px; font-weight: 600; border-radius: 2px; z-index: 40; text-align: center; }
+.toast[hidden] { display: none; }
+#screen-result .slot-actions { gap: 8px; }
+.btn-secondary[disabled], .cta[disabled] { opacity: 0.45; pointer-events: none; }
+.result-score { margin-top: 0; font-size: 50px; font-weight: 900; line-height: 1; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.result-score .unit { font-size: 18px; font-weight: 700; margin-left: 4px; letter-spacing: 0; }
+.result-grade { margin-top: 8px; font-size: 17px; font-weight: 800; line-height: 22px; }
+.result-comment { margin-top: 6px; font-size: 14px; font-weight: 500; color: var(--muted); line-height: 1.4; }
+
+/* ---------- 세로가 짧은 화면(예: 320×568) — 같은 규격을 축소 ---------- */
+@media (max-height: 640px) {
+  :root { --preview-height: 150px; --screen-top: 16px; --screen-bottom: 20px; --gap-preview-title: 12px; --gap-title-content: 12px; --gap-content-cta: 20px; --button-height: 42px; --button-height-secondary: 40px; --info-body-height: 90px; --fruit-cell-height: 88px; --fruit-img-height: 40px; --pad-btn-h: 44px; --pad-btn-w: 60px; }
+  .slot-title.main { font-size: 24px; }
+  .slot-actions { gap: 6px; }
+  .pad { padding-top: 8px; }
+}
