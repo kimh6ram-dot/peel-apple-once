@@ -17,7 +17,7 @@ const click = (page, id) => page.evaluate((id) => document.getElementById(id).cl
     const ctx = await browser.newContext(Object.assign({ viewport: { width: w, height: h } }, opts || {}));
     const page = await ctx.newPage();
     page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
-    page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text().slice(0, 120)); });
+    page.on('console', (m) => { if (m.type() === 'error' && !/countapi|ERR_FAILED/.test(m.text())) errors.push('console: ' + m.text().slice(0, 120)); });
     await page.goto(URL + (query || '')); await page.waitForFunction(() => window.AP_READY === true, null, { timeout: 60000 });
     await page.evaluate(() => AP_DEBUG.setPaused(true));
     return page;

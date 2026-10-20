@@ -81,15 +81,15 @@ const URL = 'file:///C:/Users/thkim/Desktop/code-work/04_꼬직/261014_apple gam
   ok('공개 URL 미설정(' + JSON.stringify(off.url) + '): 버튼 비활성 + "' + off.note + '" 표시(임의 주소 없음)', off.disabled && !off.hidden && off.url === '' && /테스트 상태/.test(off.note), off);
   await page.evaluate(() => { AP.CONFIG.SHARE.URL = 'https://example.test/apple/'; AP.share.refresh(); });
   ok('URL 설정 시 버튼 활성', !(await page.evaluate(() => document.getElementById('btn-challenge').disabled)));
-  const r5 = await page.evaluate(async () => { window.__s = null; navigator.share = (d) => { window.__s = d; return Promise.resolve(); }; return AP.share.challenge(); });
+  const r5 = await page.evaluate(async () => { window.__s = null; navigator.share = (d) => { window.__s = d; return Promise.resolve(); }; return (async () => { const pr = AP.share.challenge(); await new Promise((r) => setTimeout(r, 100)); document.getElementById("modal-ok").click(); return pr; })(); });
   const sd = await page.evaluate(() => window.__s);
-  ok('Web Share(터치): 제목·본문(점수 ' + sc.score.total + ')·URL 정확', r5 === 'shared' && sd.title === '나보다 잘 깎을 수 있어?' && sd.text === '나는 한 번에 깎으세요 [사과]에서 ' + sc.score.total + '점 나왔어.\n너는 몇 점 나올지 궁금한데?' && sd.url === 'https://example.test/apple/?fruit=apple', sd);
-  const r6 = await page.evaluate(async () => { navigator.share = () => Promise.reject(Object.assign(new Error('x'), { name: 'AbortError' })); return AP.share.challenge(); });
+  ok('Web Share(터치): 제목·본문(점수 ' + sc.score.total + ')·URL 정확', r5 === 'shared' && sd.title === '나보다 잘 깎을 수 있어?' && sd.text === '내 사과 깎기 기록 ' + sc.score.total + '점. 이길 수 있으면 해보세요.' && sd.url.indexOf('https://example.test/apple/#battle/v1.') === 0, sd);
+  const r6 = await page.evaluate(async () => { navigator.share = () => Promise.reject(Object.assign(new Error('x'), { name: 'AbortError' })); return (async () => { const pr = AP.share.challenge(); await new Promise((r) => setTimeout(r, 100)); document.getElementById("modal-ok").click(); return pr; })(); });
   ok('공유 취소: 오류 없이 복귀("' + r6 + '")', r6 === 'cancelled');
-  const r7 = await page.evaluate(async () => { navigator.share = undefined; window.__c = null; Object.defineProperty(navigator, 'clipboard', { value: { writeText: (t) => { window.__c = t; return Promise.resolve(); } }, configurable: true }); return AP.share.challenge(); });
+  const r7 = await page.evaluate(async () => { navigator.share = undefined; window.__c = null; Object.defineProperty(navigator, 'clipboard', { value: { writeText: (t) => { window.__c = t; return Promise.resolve(); } }, configurable: true }); return (async () => { const pr = AP.share.challenge(); await new Promise((r) => setTimeout(r, 100)); document.getElementById("modal-ok").click(); return pr; })(); });
   const cp = await page.evaluate(() => ({ c: window.__c, t: document.getElementById('toast').textContent }));
-  ok('Web Share 미지원: 클립보드에 문구+링크 복사 · 토스트 "' + cp.t + '"', r7 === 'copied' && cp.c.includes('나보다 잘 깎을 수 있어?') && cp.c.includes(sc.score.total + '점') && cp.c.includes('https://example.test/apple/?fruit=apple') && cp.t === '도전장 링크가 복사됐어요!', cp);
-  const r8 = await page.evaluate(async () => { Object.defineProperty(navigator, 'clipboard', { value: { writeText: () => Promise.reject(new Error('denied')) }, configurable: true }); return AP.share.challenge(); });
+  ok('Web Share 미지원: 클립보드에 문구+링크 복사 · 토스트 "' + cp.t + '"', r7 === 'copied' && cp.c.includes('나보다 잘 깎을 수 있어?') && cp.c.includes(sc.score.total + '점') && cp.c.includes('https://example.test/apple/#battle/v1.') && cp.t === '도전장 링크가 복사됐어요!', cp);
+  const r8 = await page.evaluate(async () => { Object.defineProperty(navigator, 'clipboard', { value: { writeText: () => Promise.reject(new Error('denied')) }, configurable: true }); return (async () => { const pr = AP.share.challenge(); await new Promise((r) => setTimeout(r, 100)); document.getElementById("modal-ok").click(); return pr; })(); });
   ok('복사 실패: 오류 없이 안내 토스트("' + r8 + '")', r8 === 'failed');
   ok('공유 링크 = 게임 루트 주소 → 시작 화면(intro)이 첫 화면', (await page.evaluate(() => { AP_DEBUG.goIntro(); return document.getElementById('screen-intro').classList.contains('active'); })));
 

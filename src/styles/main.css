@@ -336,3 +336,39 @@ button { font-family: inherit; cursor: pointer; }
   .slot-actions { gap: 6px; }
   .pad { padding-top: 8px; }
 }
+
+/* ---------- 도전장 · 대결 결과 · 닉네임 모달 (주차하기와 같은 구조) ---------- */
+/* 도전장 링크로 열면 초기화가 끝날 때까지 메인 화면을 보이지 않는다(메인 화면이 번쩍이지 않게) */
+html.boot-challenge #screen-intro { display: none !important; }
+/* CHALLENGE · BATTLE 은 INTRO 와 같은 구조([비주얼 → 제목 → 본문 → CTA]) — 시작점·본문 슬롯이 같아 [도전 시작]·[다시 붙기] 가 [시작하기] 와 같은 높이 */
+#screen-challenge, #screen-battle { justify-content: flex-start; padding-top: var(--anchor-top); }
+#screen-challenge .slot-body, #screen-battle .slot-body { min-height: var(--info-body-height); justify-content: flex-start; }
+.challenge-body { gap: 2px; text-align: center; }
+.challenge-name { font-size: 14px; font-weight: 600; color: var(--muted); line-height: 18px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#screen-challenge .result-score { font-size: 44px; margin-top: 0; }
+.battle-hint { font-size: 16px; font-weight: 700; line-height: 20px; }
+
+.vs-visual { gap: 8px; padding: 0 8px; }
+.vs-fig { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.vs-canvas-box { width: 100%; height: calc(var(--preview-height) - 44px); }
+.vs-fig canvas { display: block; width: 100%; height: 100%; }
+.vs-name { font-size: 13px; font-weight: 600; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vs-mid { font-size: 15px; font-weight: 800; flex-shrink: 0; }
+.vs-scores { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; line-height: var(--title-h); height: var(--title-h); display: flex; align-items: center; justify-content: center; }
+.vs-scores .vs-sep { font-size: 16px; font-weight: 800; margin: 0 10px; line-height: 1; }
+.vs-winner { font-size: 16px; font-weight: 700; text-align: center; }
+
+/* 결과 화면: 도전으로 들어온 판이면 [대결 결과 보기] 가 주요 CTA 슬롯을 차지하고, [도전장 보내기] 는 보조 버튼 모양으로 아래에 */
+#btn-battle-result[hidden] { display: none; }
+#screen-result.has-battle #btn-challenge { background: #FFFFFF; color: #000000; height: var(--button-height-secondary); font-size: 15px; font-weight: 600; }
+#screen-result.has-battle #btn-challenge:active { background: #000000; color: #FFFFFF; }
+
+.btn-row { display: flex; gap: 8px; }
+.btn-row > * { flex: 1 1 0; min-width: 0; }
+.modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.35); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+.modal.hidden { display: none !important; }
+.modal-card { width: 100%; max-width: var(--content-width); background: #FFFFFF; border: 1px solid #000000; padding: 22px 18px; display: flex; flex-direction: column; gap: 14px; }
+.modal-title { font-size: 17px; font-weight: 800; text-align: center; }
+.modal-card input { width: 100%; height: 46px; padding: 0 12px; border: 1px solid #000000; border-radius: 2px; font-family: inherit; font-size: 16px; font-weight: 600; color: #000000; background: #FFFFFF; -webkit-user-select: text; user-select: text; }
+.modal-card input:focus { outline: 2px solid #000000; outline-offset: -1px; }
+.modal-card .cta, .modal-card .btn-secondary { height: 46px; }

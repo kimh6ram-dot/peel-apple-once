@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="src/styles/main.css" />
 </head>
 <body>
+  <script>if (/^#battle\//.test(location.hash)) document.documentElement.classList.add("boot-challenge");</script>
   <div class="app screen-on" id="app">
     <!-- PLAY 스테이지(WebGL: 사과 3D + 칼 스프라이트) + 최소 HUD + 하단 방향 패드. INTRO/RESULT 는 흰 전체 화면으로 위에 덮인다 -->
     <canvas id="stage"></canvas>
@@ -69,6 +70,7 @@
         <div class="result-comment" id="result-detail"></div>
       </div>
       <div class="slot-actions">
+        <button id="btn-battle-result" class="cta" type="button" hidden>대결 결과 보기</button>
         <button id="btn-challenge" class="cta" type="button">친구에게 도전장 보내기</button>
         <p class="result-note" id="challenge-note" hidden></p>
         <div class="result-secondary">
@@ -78,7 +80,47 @@
       </div>
       <p class="result-mark">@ccojik.dh</p>
     </section>
+    <!-- CHALLENGE (도전장 링크로 진입): 비주얼(친구의 최종 모습) → 제목 → 기록 → [도전 시작]. INTRO 와 같은 구조라 버튼이 같은 높이 -->
+    <section id="screen-challenge" class="screen">
+      <div class="slot-visual"><canvas id="challenge-canvas"></canvas></div>
+      <h2 class="slot-title">도전장이 도착했습니다</h2>
+      <div class="slot-body challenge-body">
+        <p id="challenge-name" class="challenge-name">친구의 기록</p>
+        <div id="challenge-score" class="result-score">0<span class="unit">점</span></div>
+        <p class="battle-hint">이길 수 있으면 해보세요.</p>
+      </div>
+      <div class="slot-actions"><button id="btn-challenge-start" class="cta" type="button">도전 시작</button></div>
+    </section>
+
+    <!-- BATTLE RESULT: 비주얼(둘의 최종 모습) → 점수 VS 점수 → 승패 → [다시 붙기] -->
+    <section id="screen-battle" class="screen">
+      <div class="slot-visual vs-visual">
+        <div class="vs-fig"><div class="vs-canvas-box"><canvas id="vs-a-canvas"></canvas></div><span id="vs-a-name" class="vs-name"></span></div>
+        <span class="vs-mid">VS</span>
+        <div class="vs-fig"><div class="vs-canvas-box"><canvas id="vs-b-canvas"></canvas></div><span id="vs-b-name" class="vs-name"></span></div>
+      </div>
+      <h2 class="slot-title vs-scores"><span id="vs-a-score">0</span><span class="vs-sep">VS</span><span id="vs-b-score">0</span></h2>
+      <div class="slot-body"><p id="vs-winner" class="vs-winner"></p></div>
+      <div class="slot-actions">
+        <button id="btn-rematch" class="cta" type="button">다시 붙기</button>
+        <button id="btn-vs-detail" class="btn-secondary" type="button">내 결과 자세히 보기</button>
+      </div>
+    </section>
+
     <p class="toast" id="toast" hidden></p>
+  </div>
+
+
+  <!-- 도전장에 적을 닉네임 -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <p class="modal-title">도전장에 적을 닉네임</p>
+      <input id="modal-input" type="text" maxlength="12" placeholder="예: 껍질장인" autocomplete="off">
+      <div class="btn-row">
+        <button id="modal-cancel" class="btn-secondary" type="button">취소</button>
+        <button id="modal-ok" class="cta" type="button">확인</button>
+      </div>
+    </div>
   </div>
 
   <!-- 순서 고정: three → config → assets-data → assets → rotation → apple → scene → knife → blade → cutting → input → play → main -->
@@ -96,6 +138,7 @@
   <script src="src/game/ribbon.js"></script>
   <script src="src/game/scoring.js"></script>
   <script src="src/game/share.js"></script>
+  <script src="src/game/battle.js"></script>
   <script src="src/game/input.js"></script>
   <script src="src/game/play.js"></script>
   <script src="src/main.js"></script>

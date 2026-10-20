@@ -85,19 +85,40 @@ AP.share = (function () {
 
   function shareText(score) { return SH.TEXT.replace('{fruit}', AP.fruits.current.name).replace('{score}', String(score)); }
   function shareUrl() { return SH.URL ? SH.URL + (SH.URL.indexOf('?') >= 0 ? '&' : '?') + 'fruit=' + AP.fruits.current.id : ''; }
+  /* 닉네임 입력(도전장에 적힌다) — 마지막으로 쓴 닉네임을 기억한다 */
+  function askNickname() {
+    return new Promise(function (resolve) {
+      var modal = document.getElementById('modal'), input = document.getElementById('modal-input'), okB = document.getElementById('modal-ok'), noB = document.getElementById('modal-cancel');
+      var last = ''; try { last = localStorage.getItem('peel_nick') || ''; } catch (e) { /* 무시 */ }
+      modal.classList.remove('hidden'); input.value = last; setTimeout(function () { try { input.focus(); input.select(); } catch (e) { /* 무시 */ } }, 50);
+      function done(v) { modal.classList.add('hidden'); okB.removeEventListener('click', ok); noB.removeEventListener('click', cancel); input.removeEventListener('keydown', key); resolve(v); }
+      function ok() { var v = (input.value || '').trim() || '친구'; try { localStorage.setItem('peel_nick', v); } catch (e) { /* 무시 */ } done(v); }
+      function cancel() { done(null); }
+      function key(e) { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); }
+      okB.addEventListener('click', ok); noB.addEventListener('click', cancel); input.addEventListener('keydown', key);
+    });
+  }
+  function track(name) { try { if (window.SiteAnalytics) window.SiteAnalytics.track(name); } catch (e) { /* 무시 */ } }
+
+  /* 도전장 보내기: 닉네임 → 내 기록(점수·과일·깎인 모습)을 담은 링크 → 공유 시트(없으면 클립보드 복사) */
   function challenge() {
-    var snap = AP.play.getSnapshot(), text = shareText(snap.score.total);
+    var snap = AP.play.getSnapshot();
     if (!SH.URL) { toast('공유 주소가 아직 설정되지 않았어요(테스트 상태)'); return Promise.resolve('disabled'); }
-    var data = { title: SH.TITLE, text: text, url: shareUrl() };
-    function copy() {
-      var full = SH.TITLE + '\n' + text + '\n' + shareUrl();
-      var p = (navigator.clipboard && navigator.clipboard.writeText) ? navigator.clipboard.writeText(full) : Promise.reject(new Error('no clipboard'));
-      return p.then(function () { toast(SH.COPIED); return 'copied'; }, function (e) { lastError = e; toast('복사하지 못했어요. 링크: ' + shareUrl()); return 'failed'; });
-    }
-    if (isTouch() && navigator.share) {
-      return navigator.share(data).then(function () { return 'shared'; }, function (e) { if (e && e.name === 'AbortError') return 'cancelled'; return copy(); });
-    }
-    return copy();
+    if (snap.state !== 'ended') return Promise.resolve('disabled');
+    track('challenge_share');
+    return askNickname().then(function (nick) {
+      if (nick == null) return 'cancelled';
+      var url = AP.battle.buildUrl(AP.battle.makeToken({ nickname: nick, total: snap.score.total, fruit: AP.fruits.current.id, peelPct: snap.peelPct, fleshPct: snap.fleshPct, surface: AP.apple.current.surface }));
+      var text = shareText(snap.score.total), data = { title: SH.TITLE, text: text, url: url };
+      function copy() {
+        var p = (navigator.clipboard && navigator.clipboard.writeText) ? navigator.clipboard.writeText(SH.TITLE + '\n' + text + '\n' + url) : Promise.reject(new Error('no clipboard'));
+        return p.then(function () { toast(SH.COPIED); return 'copied'; }, function (e) { lastError = e; try { window.prompt('도전장 링크를 복사하세요', url); } catch (x) { /* 무시 */ } toast('복사하지 못했어요'); return 'failed'; });
+      }
+      if (isTouch() && navigator.share) {
+        return navigator.share(data).then(function () { return 'shared'; }, function (e) { if (e && e.name === 'AbortError') return 'cancelled'; return copy(); });
+      }
+      return copy();
+    });
   }
 
   function bind(els) {

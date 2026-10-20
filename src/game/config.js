@@ -135,7 +135,7 @@ AP.CONFIG = {
   SHARE: {
     URL: 'https://kimh6ram-dot.github.io/peel-apple-once/',   // 배포 주소(GitHub Pages). 공유 링크 = 이 주소 + ?fruit=과일id
     TITLE: '나보다 잘 깎을 수 있어?',
-    TEXT: ['나는 한 번에 깎으세요 [{fruit}]에서 {score}점 나왔어.', '너는 몇 점 나올지 궁금한데?'].join('\n'),
+    TEXT: '내 {fruit} 깎기 기록 {score}점. 이길 수 있으면 해보세요.',   // 주차하기와 같은 말투("내 후면주차 기록 92점. 이길 수 있으면 해보세요.")
     COPIED: '도전장 링크가 복사됐어요!',
     FILENAME: 'ccojik-apple-result.png',
   },

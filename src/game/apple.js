@@ -352,7 +352,8 @@ AP.apple = (function () {
   }
 
   /* ── 생성 ────────────────────────────────────────────────────────────── */
-  function create(fid) {
+  /* opts.detached: 전역 current 를 바꾸지 않는 보조 모델(도전장의 상대 최종 모습 렌더용) */
+  function create(fid, opts) {
     var S = createSurface(AP.fruits.params(fid || 'apple'));
     var body = buildBodyMesh(S);
     var caps = buildCaps(S);
@@ -374,6 +375,7 @@ AP.apple = (function () {
     var viewScale = 1;   // 화면 배율(짧은 화면에서 기울기 0 의 칼이 능선~바닥 전체에 닿도록 사과를 줄일 때 < 1). 표면 데이터는 배율과 무관(사과 단위)
     var apple = {
       group: group, surface: S, body: body, stem: stem, caps: caps, marker: marker, fruitId: S.fruitId,
+      syncDecor: decorSync,
       dispose: function () { group.traverse(function (o) { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); },
       setAngle: function (phi) { group.rotation.y = phi; },
       setViewScale: function (vs) { viewScale = vs; group.scale.set(vs, vs, vs); },
@@ -387,7 +389,7 @@ AP.apple = (function () {
       },
       markerWorld: function () { var v = new THREE.Vector3(); marker.updateWorldMatrix(true, false); return v.setFromMatrixPosition(marker.matrixWorld); },
     };
-    current = apple;
+    if (!(opts && opts.detached)) current = apple;
     return apple;
   }
 

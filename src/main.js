@@ -12,6 +12,9 @@
   var pad = $('pad'), hint = $('hint'), watermark = $('watermark'), debugReadout = $('debug-readout');
   var screenIntro = $('screen-intro'), introCanvas = $('intro-canvas'), btnStart = $('btn-start');
   var screenSelect = $('screen-select'), fruitGrid = $('fruit-grid'), btnSelectNext = $('btn-select-next');
+  var screenChallenge = $('screen-challenge'), screenBattle = $('screen-battle'), btnBattleResult = $('btn-battle-result');
+  var challenge = null;          // 도전장 링크로 들어왔을 때 친구의 기록(AP.battle.parseToken)
+  function track(name) { try { if (window.SiteAnalytics) window.SiteAnalytics.track(name); } catch (e) { /* 무시 */ } }
   var btnSave = $('btn-save');
   var selectedFruit = 'apple';
   var resultScore = $('result-score'), resultGrade = $('result-grade'), resultDetail = $('result-detail'), screenResult = $('screen-result'), resultCanvas = $('result-canvas'), resultTitle = $('result-title'), btnRestart = $('btn-restart');
@@ -71,6 +74,7 @@
     AP.knife.layout(layoutInfo);
     if (!AP.knife.placed || AP.play.state === 'intro') AP.knife.place(AP.apple.silhouetteX);
     syncKnifeMesh();
+    if (screenChallenge.classList.contains('active')) paintChallenge();
     if (AP.play.state === 'intro') { paintIntroPreview(); if (screenSelect.classList.contains('active')) { layoutFruitImages(); paintSelectPreview(); } }
   }
 
@@ -205,8 +209,36 @@
     updateSelectNext(); paintSelectPreview();
     return true;
   }
-  function hideFlow() { show(screenIntro, false); show(screenSelect, false); show(screenResult, false); }
+  function hideFlow() { show(screenIntro, false); show(screenSelect, false); show(screenResult, false); show(screenChallenge, false); show(screenBattle, false); }
   function showSelect() { hideFlow(); show(screenSelect, true); layoutFruitImages(); updateSelectNext(); paintSelectPreview(); }
+
+  /* ── 도전장 · 대결 결과(주차하기와 같은 흐름) ── */
+  function drawContain(cv, src) {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth || 300, h = cv.clientHeight || 150;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    var x = cv.getContext('2d'); x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, cv.width, cv.height);
+    var k = Math.min(cv.width / src.width, cv.height / src.height), dw = src.width * k, dh = src.height * k;
+    x.drawImage(src, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
+  }
+  function snapFor(rec, cv) { var dpr = Math.min(window.devicePixelRatio || 1, 2); return AP.battle.snapshotOf(rec, (cv.clientWidth || 300) * dpr, (cv.clientHeight || 150) * dpr); }
+  function paintChallenge() { if (challenge) drawContain($('challenge-canvas'), snapFor(challenge, $('challenge-canvas'))); }
+  function showChallenge() {
+    hideFlow(); show(screenChallenge, true); document.documentElement.classList.remove('boot-challenge');
+    $('challenge-name').textContent = challenge.nickname + '의 ' + AP.fruits.CONFIGS[challenge.fruit].name + ' 깎기 기록';
+    var sc = $('challenge-score'); sc.textContent = ''; sc.appendChild(document.createTextNode(String(challenge.total))); var un = document.createElement('span'); un.className = 'unit'; un.textContent = '점'; sc.appendChild(un);
+    paintChallenge();
+  }
+  function showBattle() {
+    if (!challenge) return;
+    var mine = AP.play.getSnapshot(); hideFlow(); show(screenBattle, true);
+    var ca = $('vs-a-canvas'), cb = $('vs-b-canvas'), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    drawContain(ca, snapFor(challenge, ca));                                                   // 친구
+    drawContain(cb, AP.share.renderApple((cb.clientWidth || 140) * dpr, (cb.clientHeight || 150) * dpr));   // 나(지금 모델 = 내 최종 모습)
+    $('vs-a-name').textContent = challenge.nickname; $('vs-b-name').textContent = '나';
+    $('vs-a-score').textContent = String(challenge.total); $('vs-b-score').textContent = String(mine.score.total);
+    var diff = mine.score.total - challenge.total;
+    $('vs-winner').textContent = diff > 0 ? '이겼습니다. ' + diff + '점 차이.' : (diff < 0 ? '졌습니다. ' + (-diff) + '점 부족.' : '무승부. 한 번 더.');
+  }
 
   /* ── 흐름 ── */
   /* 3D 과일 모델 교체: 선택한 과일의 형태·색·크기로 표면/메시를 다시 만든다(절삭 엔진은 그대로 — 표면 데이터만 교체) */
@@ -252,6 +284,8 @@
       resultScore.textContent = ''; resultScore.appendChild(document.createTextNode(String(snap.score.total))); var un = document.createElement('span'); un.className = 'unit'; un.textContent = '점'; resultScore.appendChild(un);
       resultGrade.textContent = snap.score.grade;
       resultDetail.textContent = '껍질 제거 ' + Math.round(snap.peelPct) + '% · 과육 손실 ' + snap.fleshPct.toFixed(1) + '% · 최장 껍질 ' + Math.round(snap.ribbon.longestCm) + 'cm';
+      screenResult.classList.toggle('has-battle', !!challenge); btnBattleResult.hidden = !challenge;     // 도전으로 들어온 판이면 [대결 결과 보기]
+      track('game_complete');
       show(screenResult, true);
       paintCanvas(resultCanvas, sceneRect());
     }
@@ -291,16 +325,22 @@
     setDebug(debugOn);
     hint.textContent = AP.input.isTouchPrimary() ? '방향 버튼으로 이동 · 회전 버튼으로 각도 조절 · 칼을 떼면 끝!' : '방향키로 이동 · Q/W로 각도 조절 · 칼을 떼면 끝!';
     AP.input.attach(pad);
-    btnStart.addEventListener('click', showSelect);
-    btnSelectNext.addEventListener('click', requestStart);
-    btnRestart.addEventListener('click', requestStart);
+    btnStart.addEventListener('click', function () { track('flow_start'); showSelect(); });
+    btnSelectNext.addEventListener('click', function () { track('game_start'); requestStart(); });
+    btnRestart.addEventListener('click', function () { track('replay'); requestStart(); });
+    $('btn-challenge-start').addEventListener('click', function () { track('challenge_start'); if (challenge && AP.fruits.available(challenge.fruit)) selectFruit(challenge.fruit); showSelect(); });   // 친구와 같은 과일이 미리 선택된다(바꿀 수 있음)
+    btnBattleResult.addEventListener('click', showBattle);
+    $('btn-rematch').addEventListener('click', function () { track('replay'); requestStart(); });
+    $('btn-vs-detail').addEventListener('click', function () { hideFlow(); show(screenResult, true); });
     AP.share.bind({ save: $('btn-save'), challenge: $('btn-challenge'), note: $('challenge-note'), toast: $('toast') });
     paintIntroPreview();
     AP.fruits.probe(function () {                  // 과일 이미지 존재 확인 후 선택 UI 구성(없는 이미지는 오류 없이 "준비 중")
       var q = /[?&]fruit=([a-z]+)/.exec(location.search);      // 공유 링크의 ?fruit= 로 같은 과일 미리 선택
       if (q && AP.fruits.available(q[1])) selectedFruit = q[1];
       AP.fruits.select(selectedFruit); useFruit(selectedFruit); previewFruit = selectedFruit; buildFruitGrid(); btnSave.textContent = '내 ' + AP.fruits.current.name + ' 저장';
-      bootReady = true; paintIntroPreview();           // 최종 과일·크기·위치가 정해진 뒤 첫 그림
+      bootReady = true;
+      var tok = AP.battle.parseHash(), rec = tok && AP.battle.parseToken(tok);      // 도전장 링크(#battle/…)면 도전장 화면, 아니면 메인 — 최종 과일·크기·위치가 정해진 뒤 첫 그림
+      if (rec) { challenge = rec; showChallenge(); } else { document.documentElement.classList.remove('boot-challenge'); paintIntroPreview(); }
       window.AP_READY = true;
       requestAnimationFrame(loop);
     });
@@ -382,7 +422,7 @@
     cellState: function (row, sector) { var Sf = apple.surface, idx = row * Sf.NS + sector; return { idx: idx, state: Sf.state[idx], rec: Sf.rec[idx], r0: Sf.r0[idx], skin: Sf.skin[idx], fleshLoss: Sf.fleshLoss[idx], peeled: Sf.peeled[idx], meshR: apple.body.cellMeshRadius(idx) }; },
     /* QA: 기본은 호환 모드(시작 즉시 PLAYING · 접촉 상실로 종료 안 함 — 기계 동작 테스트용). setLegacy(false) 가 실제 규칙(READY→첫 접촉→PLAYING→이탈 종료) */
     start: function () { var ok = requestStart(); if (qaLegacy) AP.play.forcePlaying(); return ok; }, finish: function (r) { return AP.play.finish(r || 'button'); }, goIntro: goIntro,
-    goSelect: showSelect, selectFruit: selectFruit, selectedFruit: function () { return selectedFruit; }, previewFruit: function () { return previewFruit; },
+    goSelect: showSelect, challenge: function () { return challenge; }, goBattle: showBattle, selectFruit: selectFruit, selectedFruit: function () { return selectedFruit; }, previewFruit: function () { return previewFruit; },
     setLegacy: function (b) { qaLegacy = !!b; AP.play.setQaMode(!!b); },
     setPaused: function (b) { paused = !!b; },
     setDirs: function (dx, dy, rot) { AP.input.setOverride(dx === null || dx === undefined ? null : { dx: dx, dy: dy, rot: rot || 0 }); },
