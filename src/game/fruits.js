@@ -30,8 +30,8 @@ window.AP = window.AP || {};
 
 AP.fruits = (function () {
   var C0 = AP.CONFIG;
-  /* 평가 문구(5구간, 모든 과일 공통 틀 — {과일} 만 이름으로 바뀐다): 90+ "{과일} 깎기 국가대표" · 85~89 "아까 조금만 잘했어도 90점인데" · 75~84 "제법 깎음. (시집가라는 건 ❌)" · 50~74 "너 이거보다 잘할 수 있잖아" · 0~49 "내 {과일}가 죽었어" */
-  function gradesFor(name) { var T = AP.CONFIG.SCORE.TIERS; return [[T[0], name + ' 깎기 국가대표'], [T[1], '아까 조금만 잘했어도 ' + T[0] + '점인데'], [T[2], '제법 깎음. (시집가라는 건 ❌)'], [T[3], ['이거보다 잘할 수 있잖아요', '웃기려고 그런거죠?']], [T[4], '내 ' + name + '가 죽었어']]; }
+  /* 평가 문구(5구간, 모든 과일 공통 틀 — {과일} 만 이름으로 바뀐다): 90+ "{과일} 깎기 국가대표" · 85~89 "아까 조금만 잘했어도 90점인데" · 75~84 "제법 깎음. (잘깎는다는 말은 ❌)" · 50~74 "너 이거보다 잘할 수 있잖아" · 0~49 "내 {과일}가 죽었어" */
+  function gradesFor(name) { var T = AP.CONFIG.SCORE.TIERS; return [[T[0], name + ' 깎기 국가대표'], [T[1], '아까 조금만 잘했어도 ' + T[0] + '점인데'], [T[2], '제법 깎음. (잘깎는다는 말은 ❌)'], [T[3], ['이거보다 잘할 수 있잖아요', '웃기려고 그런거죠?']], [T[4], '내 ' + name + '가 죽었어']]; }
   var APPLE_GRADES = gradesFor('사과');
   var APPLE_COLORS = { skin: C0.SKIN_COLOR.slice(), flesh: C0.FLESH_COLOR.slice(), stem: C0.STEM_COLOR.slice() };   // 사과 = 기존 config 값
   var LIGHT_GAIN = 1.05;
