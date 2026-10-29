@@ -211,6 +211,8 @@ AP.gallery = (function () {
 
   return {
     capture: capture, clearRound: clearRound, current: current, submit: submit, config: config, clearSession: function () { writeStore(null); }, webpSupported: webpSupported, uuid: uuid,
+    /* [내 사과 보러 가기]: 전시장 전체 화면으로 가서 방금 올린 내 사과를 표시(?mine=). 공유 링크(?id=, 상세가 바로 열림)는 galleryUrl */
+    listUrl: function (id) { var q = id ? '?mine=' + encodeURIComponent(id) : ''; try { return new URL('gallery.html' + q, location.href).href; } catch (e) { return 'gallery.html' + q; } },
     galleryUrl: function (id) { try { return new URL('gallery.html' + (id ? '?id=' + encodeURIComponent(id) : ''), location.href).href; } catch (e) { return 'gallery.html' + (id ? '?id=' + encodeURIComponent(id) : ''); } },
     _env: env, STORE_KEY: STORE_KEY,
   };

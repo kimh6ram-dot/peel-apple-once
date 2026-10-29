@@ -50,7 +50,15 @@ a { color: inherit; }
 .g-cell-row { display: flex; align-items: baseline; justify-content: space-between; gap: 4px; min-width: 0; }
 .g-cell-score { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; white-space: nowrap; }
 .g-cell-score small { font-size: 11px; font-weight: 600; margin-left: 1px; }
-.g-cell-likes { font-size: 11px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.g-item { cursor: pointer; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.g-item .g-cell { gap: 0; }
+/* 좋아요 버튼: 글자는 작게 두고 누르는 영역만 위·옆으로 넓힌다(음수 margin 으로 배치는 그대로) */
+.g-cell-like { display: inline-flex; align-items: center; margin: -7px 0; padding: 7px 0 7px 8px; background: none; border: 0; font-size: 11px; font-weight: 500; color: var(--muted); white-space: nowrap; line-height: 1.3; }
+.g-cell-like[aria-pressed="true"] { color: #000; font-weight: 800; }
+.g-item.g-mine .g-cell-img { outline: 2px solid #000; outline-offset: 3px; }
+.g-item.g-mine .g-cell-name::before { content: '내 사과 · '; color: #000; font-weight: 700; }
+.g-cell-like.busy, .g-like.busy { opacity: 0.55; }
+.g-cell-like[disabled] { cursor: default; }
 .g-cell-name { font-size: 11px; font-weight: 500; color: var(--muted); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .g-state { padding: 56px 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
@@ -78,6 +86,8 @@ a { color: inherit; }
 .g-d-test { margin: 10px 0 0; padding: 4px 8px; border: 1px dashed #000; font-size: 11px; font-weight: 600; }
 .g-d-actions { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 22px; }
 .g-like .g-heart { font-size: 17px; margin-right: 2px; }
+.g-like[aria-pressed="true"] { background: #000; color: #fff; }
+.g-like[disabled] { opacity: 0.45; }
 
 .g-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 30; max-width: calc(100% - 32px); margin: 0; padding: 10px 14px; background: #000; color: #fff; border-radius: 2px; font-size: 13px; font-weight: 600; text-align: center; }
 

@@ -1,7 +1,7 @@
 /* 전시장 데이터 계층 — 화면(DOM)을 전혀 모른다. 같은 인터페이스 list({sort, fruit, page, pageSize}) → Promise<{items, hasMore}> 를
  *  - 실데이터: Supabase REST(PostgREST)를 fetch 로 호출(읽기 전용, 공개 컬럼만, 숨김 행은 DB 정책이 제외)
  *  - 테스트: 브라우저 안의 가짜 데이터(DB 에 아무것도 쓰지 않음)
- * 두 가지로 제공한다. 좋아요·업로드 같은 쓰기 호출은 이 파일에 없다(다음 단계에서 서버 함수로 연결). */
+ * 두 가지로 제공한다. 좋아요·업로드 같은 쓰기 호출은 이 파일에 없다(좋아요는 gallery-likes.js, 업로드는 game/gallery-submit.js). */
 window.GalleryApi = (function () {
   'use strict';
 
@@ -119,17 +119,18 @@ window.GalleryApi = (function () {
       all: all,
       list: function (o) {
         if (opts.fail) return new Promise(function (_, rej) { setTimeout(function () { rej(GalleryError('network', '테스트 오류')); }, 120); });
+        /* 화면에는 복사본을 준다: 화면이 숫자를 바꿔도 원본(좋아요 모의 서버)과 섞이지 않는다 */
         var ps = Math.max(1, Math.min(60, o.pageSize | 0 || 24)), page = Math.max(0, o.page | 0), s = o.sort;
         var rows = all.filter(function (r) { return !o.fruit || r.fruit === o.fruit; });
         var key = { new: function (r) { return [r.createdAt]; }, popular: function (r) { return [r.likes, r.createdAt]; }, score: function (r) { return [r.score, r.createdAt]; } }[s] || function (r) { return [r.createdAt]; };
         rows.sort(function (a, b) { var x = key(a), y = key(b); for (var i = 0; i < x.length; i++) if (x[i] !== y[i]) return y[i] - x[i]; return a.id < b.id ? 1 : -1; });
         var slice = rows.slice(page * ps, page * ps + ps + 1);
-        return new Promise(function (res) { setTimeout(function () { res({ items: slice.slice(0, ps), hasMore: slice.length > ps }); }, 80); });
+        return new Promise(function (res) { setTimeout(function () { res({ items: slice.slice(0, ps).map(function (r) { return Object.assign({}, r); }), hasMore: slice.length > ps }); }, 80); });
       },
       get: function (id) {
         if (opts.fail) return new Promise(function (_, rej) { setTimeout(function () { rej(GalleryError('network', '테스트 오류')); }, 120); });
         var hit = isValidId(id) ? all.filter(function (r) { return r.id === id; })[0] : null;
-        return new Promise(function (res) { setTimeout(function () { res(hit || null); }, 60); });
+        return new Promise(function (res) { setTimeout(function () { res(hit ? Object.assign({}, hit) : null); }, 60); });
       },
     };
   }

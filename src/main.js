@@ -271,7 +271,7 @@
   function galleryClick() {
     if (!galleryOn()) return;
     var r =AP.gallery.current(); if (!r) return;
-    if (r.status === 'done') { track('gallery_open'); location.href = AP.gallery.galleryUrl(r.result.id); return; }
+    if (r.status === 'done') { track('gallery_open'); location.href = (AP.gallery.listUrl || AP.gallery.galleryUrl)(r.result.id); return; }
     if (r.status === 'sending' || galleryAsking) return;           // 연속 클릭·모달이 떠 있는 동안: 아무것도 새로 시작하지 않는다
     function stale() { var e = new Error('stale'); e.kind = 'stale'; e.userMessage = '이미 다른 판이 시작됐어요.'; return e; }
     function render() {                                             // 지금 화면의 과일이 이 결과의 것일 때만(다른 판·다른 과일이면 올리지 않는다)

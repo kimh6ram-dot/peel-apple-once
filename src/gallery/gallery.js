@@ -1,6 +1,7 @@
-/* 전시장 화면 — 읽기 전용. 데이터는 GalleryApi(gallery-api.js)만 통해서 가져오고, 외부 문자열은 전부 textContent 로만 넣는다(innerHTML 사용 안 함).
- * 모드: 기본 = 실데이터(설정이 있을 때) / 설정이 비어 있으면 안내 / ?mode=test = 가짜 데이터(DB 접근 없음, 화면에 표시).
- * 좋아요는 버튼만 있고 서버 호출이 없다 — 다음 단계에서 GalleryUI.onLike 에 서버 함수를 연결한다. */
+/* 전시장 화면. 목록·상세 데이터는 GalleryApi(gallery-api.js), 좋아요 등록/취소/내 상태는 GalleryLikes(gallery-likes.js)만 통해서 다룬다. 외부 문자열은 전부 textContent 로만 넣는다(innerHTML 사용 안 함).
+ * 모드: 기본 = 실데이터(설정이 있을 때) / 설정이 비어 있으면 안내 / ?mode=test = 가짜 데이터(DB 접근 없음, 화면에 표시; 좋아요도 메모리에서만 — ?like_fail=1 이면 항상 실패).
+ * 좋아요: 낙관적으로 먼저 바꾸고(하트·숫자), 서버 응답의 숫자로 맞춘다. 실패하면 이전 상태로 되돌린다. 요청 중인 과일은 다시 누를 수 없다.
+ *         진입 시 저장된 익명 세션이 있으면 내가 누른 과일을 한 번에 조회해 하트를 켠다(세션이 없으면 요청하지 않는다 — 처음 누를 때 익명 세션을 만든다). */
 (function () {
   'use strict';
   var API = window.GalleryApi, CFG = window.GALLERY_CONFIG || {};
@@ -8,6 +9,8 @@
   var params = new URLSearchParams(location.search);
   var isTest = params.get('mode') === 'test';
 
+  var likes = null, liked = {}, busy = {}, checked = {};     // liked: 내가 누른 과일 id → true / busy: 요청 중인 과일 id → true
+  var mineId = (function () { var v = params.get('mine'); return v && API.isValidId(v) ? v : null; })();   // [내 사과 보러 가기]로 들어온 경우: 방금 올린 내 사과 id
   var state = { sort: 'new', fruit: '', items: [], page: 0, hasMore: false, loading: false, error: null, token: 0, source: null, setup: null, detail: null };
 
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
@@ -40,16 +43,20 @@
 
   /* ── 격자 ── */
   function cell(item) {
-    var li = el('li'), b = el('button', 'g-cell'); b.type = 'button'; b.dataset.id = item.id;
+    var li = el('li', 'g-item'), b = el('button', 'g-cell'); b.type = 'button'; b.dataset.id = item.id;
     var box = el('span', 'g-cell-img'), img = document.createElement('img');
     img.alt = item.nickname + '의 ' + API.FRUITS[item.fruit]; img.width = 512; img.height = 512; img.loading = 'lazy'; img.decoding = 'async'; img.src = item.imageUrl;
     img.addEventListener('error', function () { img.style.visibility = 'hidden'; });
     box.appendChild(img);
     var row = el('span', 'g-cell-row'), sc = el('span', 'g-cell-score', String(item.score)); sc.appendChild(el('small', null, '점'));
-    row.appendChild(sc); row.appendChild(el('span', 'g-cell-likes', '♥ ' + item.likes));
-    b.appendChild(box); b.appendChild(row); b.appendChild(el('span', 'g-cell-name', item.nickname));
-    b.addEventListener('click', function () { openDetail(item, b); });
-    li.appendChild(b); return li;
+    var lb = el('button', 'g-cell-like'); lb.type = 'button'; lb.dataset.likeId = item.id;
+    lb.addEventListener('click', function (e) { e.stopPropagation(); toggleLike(item.id); });
+    row.appendChild(sc); row.appendChild(lb);
+    b.appendChild(box);
+    li.appendChild(b); li.appendChild(row); li.appendChild(el('span', 'g-cell-name', item.nickname));
+    li.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.g-cell-like')) return; openDetail(item, b); });   // 카드 어디를 눌러도 상세(좋아요 버튼 제외)
+    paintLikeBtn(lb, item);
+    return li;
   }
   function appendItems(items) { var g = $('g-grid'), frag = document.createDocumentFragment(); items.forEach(function (it) { frag.appendChild(cell(it)); }); g.appendChild(frag); }
 
@@ -90,7 +97,7 @@
     state.source.list({ sort: state.sort, fruit: state.fruit, page: page, pageSize: CFG.PAGE_SIZE || 24 }).then(function (r) {
       if (tk !== state.token) return;                                           // 정렬·필터가 바뀐 뒤 늦게 온 응답은 버린다
       state.loading = false; state.items = state.items.concat(r.items); state.page = page + 1; state.hasMore = r.hasMore;
-      appendItems(r.items);
+      appendItems(r.items); syncMine(r.items); if (first) highlightMine();
       if (!state.items.length) showStatus('empty'); else showStatus(null);
       $('g-more-wrap').hidden = !state.hasMore;
     }, function (e) {
@@ -99,6 +106,16 @@
       try { console.warn('[전시장] 조회 실패', e && e.kind, e && e.status, e && e.code, e && e.detail); } catch (x) { /* 무시 */ }
       showStatus('error', { inline: !first && state.items.length > 0 });
     });
+  }
+
+  /* 내 사과 표시: 전체 목록(최신순)에서 방금 올린 내 사과 카드를 강조하고 그 위치로 스크롤한다(상세를 열지 않는다). 한 번만 실행하고 주소에서 mine 을 지운다 */
+  function highlightMine() {
+    if (!mineId) return; var id = mineId; mineId = null; setUrlParam('mine', null);
+    var cards = document.querySelectorAll('.g-item .g-cell'), hit = null;
+    Array.prototype.forEach.call(cards, function (c) { if (c.dataset.id === id) hit = c.parentNode; });
+    if (!hit) return;
+    hit.classList.add('g-mine'); toast('내 사과가 전시장에 올라갔어요');
+    try { hit.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { /* 무시 */ }
   }
 
   /* ── 상세 ── */
@@ -110,15 +127,17 @@
     $('g-d-name').textContent = item.nickname;
     $('g-d-meta').textContent = API.FRUITS[item.fruit] + (item.createdAt != null ? ' · ' + fmtDate(item.createdAt) : '');
     $('g-d-test').hidden = !(state.source && state.source.mode === 'test');
-    $('g-like-n').textContent = String(item.likes);
+    paintLikeDetail();
     $('g-detail').hidden = false; document.documentElement.style.overflow = 'hidden'; $('g-close').focus();
     setUrlId(item.id); showMissing(null);
+    syncMine([item]);
   }
   function closeDetail() { $('g-detail').hidden = true; document.documentElement.style.overflow = ''; state.detail = null; setUrlId(null); if (lastFocus && document.contains(lastFocus)) try { lastFocus.focus(); } catch (e) { /* 무시 */ } }
 
   /* ── 공유 링크(?id=<과일 id>) ── 상세를 열면 주소에 id 가 붙고(새로고침·복사해도 같은 화면) 닫으면 빠진다. 기록 저장(history)은 쌓지 않는다 */
   function pageBase() { return location.href.split('#')[0].split('?')[0]; }
   function linkFor(id) { return pageBase() + '?' + (isTest ? 'mode=test&' : '') + 'id=' + encodeURIComponent(id); }
+  function setUrlParam(k, v) { try { var q = new URLSearchParams(location.search); if (v) q.set(k, v); else q.delete(k); var s = q.toString(); history.replaceState(null, '', pageBase() + (s ? '?' + s : '') + location.hash); } catch (e) { /* 무시 */ } }
   function setUrlId(id) {
     try {
       var q = new URLSearchParams(location.search); if (id) q.set('id', id); else q.delete('id');
@@ -158,17 +177,58 @@
     });
   }
 
-  /* 좋아요: 지금은 서버 호출 없음. 다음 단계에서 onLike 를 서버 함수 호출로 교체한다(반환: Promise<{ok, likes?, reason?}>). */
-  var UI = {
-    onLike: function (item) { return Promise.resolve({ ok: false, reason: 'not-ready' }); },
-  };
-  function likeClicked() {
-    var item = state.detail; if (!item) return;
-    UI.onLike(item).then(function (r) {
-      if (r && r.ok) { $('g-like-n').textContent = String(r.likes); $('g-like').setAttribute('aria-pressed', 'true'); }
-      else toast('좋아요는 곧 열려요');
+  /* ── 좋아요 ── */
+  function pickLikes() {
+    try {
+      if (!window.GalleryLikes) return null;
+      if (isTest) return GalleryLikes.createTest(state.source.all || [], { fail: params.get('like_fail') === '1' });
+      return GalleryLikes.create(CFG);
+    } catch (e) { return null; }                                                    // 설정 오류 등: 좋아요만 꺼지고 구경은 그대로
+  }
+  function eachItem(id, fn) { state.items.forEach(function (it) { if (it.id === id) fn(it); }); if (state.detail && state.detail.id === id && state.items.indexOf(state.detail) < 0) fn(state.detail); }
+  function likesOf(id) { var n = 0; eachItem(id, function (it) { n = it.likes; }); return n; }
+  function setLikes(id, n) { n = Math.max(0, n | 0); eachItem(id, function (it) { it.likes = n; }); }
+  function paintLikeBtn(b, item) {
+    var on = !!liked[item.id];
+    b.textContent = (on ? '♥ ' : '♡ ') + item.likes; b.setAttribute('aria-pressed', String(on));
+    b.setAttribute('aria-label', (on ? '좋아요 취소 · ' : '좋아요 · ') + item.likes + '개'); b.classList.toggle('busy', !!busy[item.id]);
+    b.disabled = !likes;                                                              // 좋아요를 쓸 수 없는 환경: 숫자만 보여 준다
+  }
+  function paintLikeDetail() {
+    var it = state.detail; if (!it) return;
+    var on = !!liked[it.id], b = $('g-like');
+    $('g-like-n').textContent = String(it.likes); b.querySelector('.g-heart').textContent = on ? '♥' : '♡';
+    b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', (on ? '좋아요 취소' : '좋아요') + ' ' + it.likes + '개'); b.classList.toggle('busy', !!busy[it.id]); b.disabled = !likes;
+  }
+  function paintLike(id) {
+    Array.prototype.forEach.call(document.querySelectorAll('.g-cell-like'), function (b) { if (b.dataset.likeId === id) eachItem(id, function (it) { paintLikeBtn(b, it); }); });
+    if (state.detail && state.detail.id === id) paintLikeDetail();
+  }
+  /* 내가 누른 과일 표시: 새로 보이는 과일들의 상태를 한 번에 조회. 실패해도 구경에는 영향 없음(하트만 꺼진 채로 둔다) */
+  function syncMine(items) {
+    if (!likes || !likes.hasSession() || !items.length) return;
+    var ids = items.map(function (it) { return it.id; }).filter(function (id) { return !checked[id]; });      // 이미 확인했거나 내가 방금 누른 과일은 다시 묻지 않는다
+    if (!ids.length) return;
+    likes.status(ids).then(function (mine) {
+      var set = {}; mine.forEach(function (id) { set[id] = true; });
+      ids.forEach(function (id) { if (busy[id]) return; checked[id] = true; if (set[id]) liked[id] = true; else delete liked[id]; paintLike(id); });
+    }, function (e) { try { console.warn('[전시장] 좋아요 상태 조회 실패', e && e.kind); } catch (x) { /* 무시 */ } });
+  }
+  function toggleLike(id) {
+    if (!likes || busy[id]) return;                                                  // 요청 중 연속 클릭 무시
+    var prevLiked = !!liked[id], prevLikes = likesOf(id), want = !prevLiked;
+    busy[id] = true; if (want) liked[id] = true; else delete liked[id]; setLikes(id, prevLikes + (want ? 1 : -1)); paintLike(id);      // 먼저 바꿔 보여 준다
+    likes.toggle(id, want).then(function (r) {
+      busy[id] = false; checked[id] = true; if (r.liked) liked[id] = true; else delete liked[id]; setLikes(id, r.likes); paintLike(id);                  // 서버가 센 숫자로 맞춘다
+    }, function (e) {
+      busy[id] = false; if (prevLiked) liked[id] = true; else delete liked[id]; setLikes(id, prevLikes); paintLike(id);              // 실패: 이전 상태로 복구
+      var k = e && e.kind;
+      toast(k === 'not_found' ? '이미 사라진 과일이에요' : k === 'rate_limited' ? '요청이 많아요. 잠시 후 다시 눌러 주세요' : (k === 'network' || k === 'timeout') ? '네트워크를 확인하고 다시 눌러 주세요' : '좋아요를 처리하지 못했어요');
+      try { console.warn('[전시장] 좋아요 실패', k); } catch (x) { /* 무시 */ }
     });
   }
+  function likeClicked() { if (state.detail) toggleLike(state.detail.id); }
+  var UI = {};
 
   /* ── 시작 ── */
   function init() {
@@ -180,6 +240,7 @@
     $('g-more').addEventListener('click', loadMore);
     buildControls();
     state.source = pickSource();
+    if (state.source) likes = pickLikes();
     if (isTest) { var bn = $('g-banner'); bn.hidden = false; bn.textContent = '테스트 데이터입니다 · 실제 이용자의 기록이 아니에요'; }
     if (!state.source) { showSetup(state.setup); return; }
     if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { if (es[0].isIntersecting) loadMore(); }, { rootMargin: '400px 0px' }).observe($('g-sentinel'));
