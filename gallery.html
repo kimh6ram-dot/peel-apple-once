@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>사과 깎기 전시장</title>
+<meta name="description" content="모두가 깎은 과일을 한곳에서 구경하세요.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="src/gallery/gallery.css?v=20261029" />
+</head>
+<body>
+  <main class="g-wrap" id="g-root">
+    <header class="g-head">
+      <a class="g-back" href="index.html">← 게임으로</a>
+      <h1 class="g-title">전시장</h1>
+      <p class="g-sub">모두가 깎은 과일</p>
+    </header>
+
+    <p id="g-banner" class="g-banner" hidden></p>
+    <div id="g-missing" class="g-missing" role="status" hidden></div>
+
+    <section class="g-controls" id="g-controls" aria-label="정렬과 필터">
+      <div class="g-seg" id="g-sorts" role="group" aria-label="정렬"></div>
+      <div class="g-chips" id="g-fruits" role="group" aria-label="과일 종류"></div>
+    </section>
+
+    <section id="g-notice" class="g-state" hidden></section>
+    <ul class="g-grid" id="g-grid"></ul>
+    <section id="g-status" class="g-state" hidden></section>
+    <div id="g-more-wrap" class="g-more" hidden><button id="g-more" class="btn-secondary" type="button">더 보기</button></div>
+    <div id="g-sentinel" aria-hidden="true"></div>
+
+    <footer class="g-foot">동행이음 · CCOJIK PLAY</footer>
+  </main>
+
+  <!-- 상세 -->
+  <div id="g-detail" class="g-detail" role="dialog" aria-modal="true" aria-label="과일 상세" hidden>
+    <div class="g-detail-card">
+      <button id="g-close" class="g-close" type="button" aria-label="닫기">×</button>
+      <div class="g-detail-img"><img id="g-d-img" alt="" width="512" height="512"></div>
+      <p id="g-d-score" class="g-d-score"></p>
+      <p id="g-d-name" class="g-d-name"></p>
+      <p id="g-d-meta" class="g-d-meta"></p>
+      <p id="g-d-test" class="g-d-test" hidden>테스트 데이터 · 실제 기록이 아닙니다</p>
+      <div class="g-d-actions">
+        <button id="g-like" class="btn-secondary g-like" type="button" aria-pressed="false"><span class="g-heart" aria-hidden="true">♡</span> <span id="g-like-n">0</span></button>
+        <button id="g-share" class="btn-secondary" type="button">링크 공유하기</button>
+        <a class="cta g-play" href="index.html">나도 깎아보기</a>
+      </div>
+    </div>
+  </div>
+  <p class="g-toast" id="g-toast" hidden></p>
+
+  <script src="src/gallery/gallery-config.js?v=20261029"></script>
+  <script src="src/gallery/gallery-api.js?v=20261029"></script>
+  <script src="src/gallery/gallery.js?v=20261029"></script>
+</body>
+</html>

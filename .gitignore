@@ -3,3 +3,13 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# 서버 전용(Supabase Edge Function·SQL·CLI 임시파일) — 공개 저장소(GitHub Pages)에 올리지 않는다
+supabase/
+tools/qa-submit-*.mjs
+tools/qa-score-bound.mjs
+tools/gallery-cleanup.mjs
+# 비밀값
+.env
+.env.*
+*.pem

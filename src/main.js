@@ -252,17 +252,59 @@
     AP.play.reset();
     syncKnifeMesh();
   }
+  /* ── 사과 전시하기(결과 화면) — 업로드 로직은 AP.gallery(gallery-submit.js). 여기서는 화면 상태·닉네임·이미지 렌더만 맡는다 ── */
+  var btnGallery = $('btn-gallery-submit'), btnGalleryView = $('btn-gallery-view'), galleryNote = $('gallery-note'), galleryAsking = false;
+  /* 캐시로 index.html 과 JS 버전이 어긋난 경우(옛 HTML + 새 main.js 등)에도 게임은 정상 부팅해야 한다 — 전시 기능에 필요한 DOM·모듈이 모두 있을 때만 켠다 */
+  function galleryOn() { return !!(btnGallery && btnGalleryView && galleryNote && AP.gallery && AP.share && AP.share.renderGalleryImage); }
+  function galleryUi(mode, msg) {      // mode: idle | sending | done | retry
+    if (!galleryOn()) return;
+    var label = { idle: '사과 전시하기', sending: '전시하는 중…', done: '내 사과 보러 가기', retry: '다시 전시하기' }[mode];
+    btnGallery.textContent = label; btnGallery.disabled = mode === 'sending';
+    galleryNote.hidden = !msg; galleryNote.textContent = msg || '';
+  }
+  function galleryReset() { if (!galleryOn()) return; AP.gallery.clearRound(); galleryAsking = false; galleryUi('idle'); }
+  function galleryCapture(snap) {      // 결과 화면이 뜨는 순간의 실제 결과(점수·제거율·손실률·표면 격자)와 request_id 를 고정 — 이후 다른 판과 섞이지 않는다
+    if (!galleryOn()) return;
+    AP.gallery.capture({ fruit: AP.fruits.current.id, score: snap.score.total, peelPct: snap.peelPct, fleshPct: snap.fleshPct, grid: AP.battle.encodeSurface(AP.apple.current.surface) });
+    galleryAsking = false; galleryUi('idle');
+  }
+  function galleryClick() {
+    if (!galleryOn()) return;
+    var r =AP.gallery.current(); if (!r) return;
+    if (r.status === 'done') { track('gallery_open'); location.href = AP.gallery.galleryUrl(r.result.id); return; }
+    if (r.status === 'sending' || galleryAsking) return;           // 연속 클릭·모달이 떠 있는 동안: 아무것도 새로 시작하지 않는다
+    function stale() { var e = new Error('stale'); e.kind = 'stale'; e.userMessage = '이미 다른 판이 시작됐어요.'; return e; }
+    function render() {                                             // 지금 화면의 과일이 이 결과의 것일 때만(다른 판·다른 과일이면 올리지 않는다)
+      var s = AP.play.getSnapshot();
+      if (r !== AP.gallery.current() || s.state !== 'ended' || AP.fruits.current.id !== r.fruit || AP.battle.encodeSurface(AP.apple.current.surface) !== r.grid) throw stale();
+      return AP.share.renderGalleryImage(512);
+    }
+    galleryAsking = true;
+    (r.nickname ? Promise.resolve(r.nickname) : AP.share.askNickname('전시장에 올릴 닉네임')).then(function (nick) {
+      galleryAsking = false;
+      if (nick == null) return;                                      // 취소: 아무것도 보내지 않는다
+      track('gallery_submit'); galleryUi('sending', '내 과일을 전시장에 올리고 있어요…');
+      return AP.gallery.submit({ round: r, nickname: nick, render: render }).then(function () {
+        if (r !== AP.gallery.current()) return;
+        galleryUi('done', '전시 완료! 내 과일이 전시장에 올라갔어요.'); AP.share.toast('전시 완료!');
+      }, function (e) {
+        if (r !== AP.gallery.current()) return;
+        if (e && e.kind === 'rejected') r.nickname = null;           // 서버가 거절(닉네임 문자 등): 다음엔 닉네임을 다시 묻는다
+        galleryUi(e && e.retryable ? 'retry' : 'idle', (e && e.userMessage) || '전시하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      });
+    });
+  }
   function requestStart() {
     useFruit(selectedFruit);
     if (!AP.play.start()) return;
-    shownResult = false; interacted = false;
+    shownResult = false; interacted = false; galleryReset();
     hideFlow();
     syncKnifeMesh();
     updateUi(AP.play.getSnapshot());
   }
   function goIntro() {
     AP.play.reset();
-    hideFlow(); shownResult = false;
+    hideFlow(); shownResult = false; galleryReset();
     syncKnifeMesh();
     paintIntroPreview();
     show(screenIntro, true);
@@ -286,6 +328,7 @@
       resultDetail.textContent = '껍질 제거 ' + Math.round(snap.peelPct) + '% · 과육 손실 ' + snap.fleshPct.toFixed(1) + '% · 최장 껍질 ' + Math.round(snap.ribbon.longestCm) + 'cm';
       screenResult.classList.toggle('has-battle', !!challenge); btnBattleResult.hidden = !challenge;     // 도전으로 들어온 판이면 [대결 결과 보기]
       track('game_complete');
+      galleryCapture(snap);
       show(screenResult, true);
       paintCanvas(resultCanvas, sceneRect());
     }
@@ -330,6 +373,8 @@
     btnRestart.addEventListener('click', function () { track('replay'); requestStart(); });
     $('btn-challenge-start').addEventListener('click', function () { track('challenge_start'); if (challenge && AP.fruits.available(challenge.fruit)) selectFruit(challenge.fruit); showSelect(); });   // 친구와 같은 과일이 미리 선택된다(바꿀 수 있음)
     btnBattleResult.addEventListener('click', showBattle);
+    if (btnGallery) btnGallery.addEventListener('click', galleryClick);
+    if (btnGalleryView) btnGalleryView.addEventListener('click', function () { track('gallery_view'); });
     $('btn-rematch').addEventListener('click', function () { track('replay'); requestStart(); });
     $('btn-vs-detail').addEventListener('click', function () { hideFlow(); show(screenResult, true); });
     AP.share.bind({ save: $('btn-save'), challenge: $('btn-challenge'), note: $('challenge-note'), toast: $('toast') });

@@ -29,6 +29,17 @@ AP.share = (function () {
     return P.renderSnapshot(w, h, rect, { bg: '#FFFFFF', hideOverlay: true });
   }
 
+  /* 전시장용(검증 단계): 현재 사과를 투명 배경 정사각 캔버스(size×size)로 렌더 — renderApple 과 같은 외곽 계산·같은 렌더 경로, 배경색만 칠하지 않는다. 화면·점수에는 영향 없음 */
+  function renderGalleryImage(size, bg) {
+    var S = AP.apple.current.surface, vs = AP.apple.current.viewScale, cx = AP.scene.appleCx, P = AP.scene;
+    var rch = S.decorReach || 0;
+    var top = P.project(new THREE.Vector3(0, (S.topExtent + rch) * vs, 0)).y, bottom = P.project(new THREE.Vector3(0, (S.bottomY - rch - (S.capExtraBottom || 0)) * vs, 0)).y;
+    var pad = 10, x0 = cx - (S.R + rch) * vs - pad, x1 = cx + (S.R + rch) * vs + pad, y0 = top - pad, y1 = bottom + pad;
+    var side = Math.max(x1 - x0, y1 - y0), mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+    return P.renderSnapshot(size, size, { x0: mx - side / 2, x1: mx + side / 2, y0: my - side / 2, y1: my + side / 2 }, { hideOverlay: true, bg: bg });
+  }
+  function toWebpBlob(cv, quality) { return new Promise(function (res, rej) { cv.toBlob(function (b) { (b && b.type === 'image/webp') ? res(b) : rej(new Error('webp 인코딩 실패')); }, 'image/webp', quality == null ? 0.9 : quality); }); }
+
   function fitText(ctx, text, maxW, size, weight) {
     var s = size; ctx.font = weight + ' ' + s + 'px ' + FONT;
     while (ctx.measureText(text).width > maxW && s > 20) { s -= 2; ctx.font = weight + ' ' + s + 'px ' + FONT; }
@@ -86,12 +97,14 @@ AP.share = (function () {
   function shareText(score) { return SH.TEXT.replace('{fruit}', AP.fruits.current.name).replace('{score}', String(score)); }
   function shareUrl() { return SH.URL ? SH.URL + (SH.URL.indexOf('?') >= 0 ? '&' : '?') + 'fruit=' + AP.fruits.current.id : ''; }
   /* 닉네임 입력(도전장에 적힌다) — 마지막으로 쓴 닉네임을 기억한다 */
-  function askNickname() {
+  function askNickname(title) {       // title: 모달 제목(생략하면 도전장용 기본 문구). 전시하기도 같은 모달을 쓴다
     return new Promise(function (resolve) {
       var modal = document.getElementById('modal'), input = document.getElementById('modal-input'), okB = document.getElementById('modal-ok'), noB = document.getElementById('modal-cancel');
+      var titleEl = modal.querySelector('.modal-title'), defTitle = titleEl.getAttribute('data-default') || titleEl.textContent;
+      titleEl.setAttribute('data-default', defTitle); titleEl.textContent = title || defTitle;
       var last = ''; try { last = localStorage.getItem('peel_nick') || ''; } catch (e) { /* 무시 */ }
       modal.classList.remove('hidden'); input.value = last; setTimeout(function () { try { input.focus(); input.select(); } catch (e) { /* 무시 */ } }, 50);
-      function done(v) { modal.classList.add('hidden'); okB.removeEventListener('click', ok); noB.removeEventListener('click', cancel); input.removeEventListener('keydown', key); resolve(v); }
+      function done(v) { modal.classList.add('hidden'); titleEl.textContent = defTitle; okB.removeEventListener('click', ok); noB.removeEventListener('click', cancel); input.removeEventListener('keydown', key); resolve(v); }
       function ok() { var v = (input.value || '').trim() || '친구'; try { localStorage.setItem('peel_nick', v); } catch (e) { /* 무시 */ } done(v); }
       function cancel() { done(null); }
       function key(e) { if (e.key === 'Enter') ok(); if (e.key === 'Escape') cancel(); }
@@ -138,5 +151,5 @@ AP.share = (function () {
     ui.note.textContent = none ? '공개 주소가 설정되면 켜져요(테스트 상태)' : '';
   }
 
-  return { renderApple: renderApple, shareUrl: shareUrl, bind: bind, refresh: refresh, save: save, challenge: challenge, buildImage: buildImage, shareText: shareText, toast: toast, get lastError() { return lastError; } };
+  return { askNickname: askNickname, renderApple: renderApple, renderGalleryImage: renderGalleryImage, toWebpBlob: toWebpBlob, shareUrl: shareUrl, bind: bind, refresh: refresh, save: save, challenge: challenge, buildImage: buildImage, shareText: shareText, toast: toast, get lastError() { return lastError; } };
 })();

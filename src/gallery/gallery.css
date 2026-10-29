@@ -1,0 +1,84 @@
+/* 전시장 — 게임(main.css)과 같은 흑백 미니멀 토큰·버튼. 카드·그림자·그라데이션 없음. 독립 페이지라 main.css 는 불러오지 않고 토큰과 버튼만 같은 값으로 둔다. */
+:root {
+  --bg: #FFFFFF; --text: #000000; --muted: #777777; --border: #000000; --soft-border: #DDDDDD; --disabled: #E5E5E5;
+  --button-height: 48px; --button-height-secondary: 44px;
+  --gutter: 16px;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font-family: "Pretendard Variable", Pretendard, -apple-system, system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; overflow-wrap: anywhere; }
+button { font-family: inherit; cursor: pointer; color: inherit; }
+a { color: inherit; }
+[hidden] { display: none !important; }
+
+.cta, .btn-secondary { display: flex; align-items: center; justify-content: center; width: 100%; border-radius: 2px; text-decoration: none; }
+.cta { height: var(--button-height); background: #000; color: #fff; border: 1px solid #000; font-size: 16px; font-weight: 700; }
+.cta:active { background: #fff; color: #000; }
+.btn-secondary { height: var(--button-height-secondary); background: #fff; color: #000; border: 1px solid #000; font-size: 15px; font-weight: 600; }
+.btn-secondary:active { background: #000; color: #fff; }
+.btn-secondary[disabled], .cta[disabled] { opacity: 0.45; pointer-events: none; }
+:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
+
+.g-wrap { width: 100%; max-width: 960px; margin: 0 auto; padding: 20px var(--gutter) 32px; }
+.g-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 18px; }
+.g-back { font-size: 13px; font-weight: 500; color: var(--muted); text-decoration: none; align-self: flex-start; padding: 6px 0; }
+.g-title { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; }
+.g-sub { margin: 0; font-size: 14px; font-weight: 500; color: var(--muted); }
+.g-banner { margin: 0 0 14px; padding: 8px 10px; border: 1px dashed #000; font-size: 12px; font-weight: 600; text-align: center; line-height: 1.4; }
+
+/* 공유 링크(?id=)로 들어왔는데 과일을 찾을 수 없을 때(잘못된 id · 삭제/숨김 · 불러오기 실패) */
+.g-missing { margin: 0 0 14px; padding: 12px 12px; border: 1px solid #000; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.g-missing p { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.5; }
+.g-missing .btn-secondary { width: 140px; height: 36px; font-size: 13px; }
+
+.g-controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.g-seg { display: flex; border: 1px solid #000; border-radius: 2px; }
+.g-seg button { flex: 1 1 0; min-width: 0; height: 40px; background: #fff; border: 0; border-left: 1px solid #000; font-size: 14px; font-weight: 600; }
+.g-seg button:first-child { border-left: 0; }
+.g-seg button[aria-pressed="true"] { background: #000; color: #fff; }
+.g-chips { display: flex; gap: 6px; }
+.g-chips button { flex: 1 1 0; min-width: 0; height: 34px; padding: 0 4px; background: #fff; border: 1px solid var(--soft-border); border-radius: 2px; font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.g-chips button[aria-pressed="true"] { border-color: #000; color: #000; font-weight: 700; }
+
+/* 격자: 모바일 3열(가장 좁은 320px 에서도 한 칸 약 90px), 넓은 화면에서 열 수만 늘린다 */
+.g-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 10px; }
+@media (min-width: 640px) { .g-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 16px; } }
+@media (min-width: 900px) { .g-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.g-cell { display: flex; flex-direction: column; align-items: stretch; gap: 4px; width: 100%; padding: 0; background: none; border: 0; text-align: left; }
+.g-cell-img { display: block; width: 100%; aspect-ratio: 1 / 1; }
+.g-cell-img img { display: block; width: 100%; height: 100%; object-fit: contain; }   /* 투명 배경 그대로, 비율 유지, 잘림 없음 */
+.g-cell-row { display: flex; align-items: baseline; justify-content: space-between; gap: 4px; min-width: 0; }
+.g-cell-score { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; white-space: nowrap; }
+.g-cell-score small { font-size: 11px; font-weight: 600; margin-left: 1px; }
+.g-cell-likes { font-size: 11px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.g-cell-name { font-size: 11px; font-weight: 500; color: var(--muted); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.g-state { padding: 56px 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.g-state p { margin: 0; line-height: 1.5; }
+.g-state .g-state-title { font-size: 17px; font-weight: 800; }
+.g-state .g-state-text { font-size: 13px; font-weight: 500; color: var(--muted); }
+.g-state .btn-secondary, .g-state .cta { width: 200px; margin-top: 6px; }
+.g-state.g-inline { padding: 20px 0; }
+.g-more { margin-top: 24px; display: flex; justify-content: center; }
+.g-more .btn-secondary { width: 200px; }
+#g-sentinel { height: 1px; }
+.g-foot { margin-top: 40px; text-align: center; font-size: 12px; font-weight: 500; color: var(--muted); }
+
+/* 상세 */
+.g-detail { position: fixed; inset: 0; z-index: 20; background: #FFFFFF; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 16px var(--gutter) 24px; }
+.g-detail-card { position: relative; width: 100%; max-width: 360px; margin: auto; padding-top: 44px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.g-close { position: absolute; top: 0; right: 0; width: 44px; height: 44px; background: #fff; border: 1px solid #000; border-radius: 2px; font-size: 24px; line-height: 1; }
+.g-close:active { background: #000; color: #fff; }
+.g-detail-img { width: 100%; max-width: 320px; aspect-ratio: 1 / 1; }
+.g-detail-img img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.g-d-score { margin: 8px 0 0; font-size: 44px; font-weight: 900; letter-spacing: -1px; line-height: 1.1; }
+.g-d-score small { font-size: 18px; font-weight: 700; margin-left: 2px; }
+.g-d-name { margin: 6px 0 0; font-size: 17px; font-weight: 700; max-width: 100%; }
+.g-d-meta { margin: 4px 0 0; font-size: 13px; font-weight: 500; color: var(--muted); }
+.g-d-test { margin: 10px 0 0; padding: 4px 8px; border: 1px dashed #000; font-size: 11px; font-weight: 600; }
+.g-d-actions { width: 100%; display: flex; flex-direction: column; gap: 8px; margin-top: 22px; }
+.g-like .g-heart { font-size: 17px; margin-right: 2px; }
+
+.g-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 30; max-width: calc(100% - 32px); margin: 0; padding: 10px 14px; background: #000; color: #fff; border-radius: 2px; font-size: 13px; font-weight: 600; text-align: center; }
+
+@media (min-width: 640px) { .g-wrap { padding-top: 32px; } .g-title { font-size: 34px; } .g-controls { flex-direction: row; align-items: center; justify-content: space-between; } .g-seg { width: 320px; } .g-chips { width: 340px; } }

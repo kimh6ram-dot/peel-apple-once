@@ -7,7 +7,7 @@
 <meta property="og:title" content="사과 깎기">
 <meta property="og:description" content="껍질만 얇게 깎으세요. 너무 깊게 깎으면 과육이 파입니다.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="src/styles/main.css" />
+<link rel="stylesheet" href="src/styles/main.css?v=20261029" />
 </head>
 <body>
   <script>if (/^#battle\//.test(location.hash)) document.documentElement.classList.add("boot-challenge");</script>
@@ -73,6 +73,11 @@
         <button id="btn-battle-result" class="cta" type="button" hidden>대결 결과 보기</button>
         <button id="btn-challenge" class="cta" type="button">친구에게 도전장 보내기</button>
         <p class="result-note" id="challenge-note" hidden></p>
+        <div class="result-secondary result-gallery">
+          <button id="btn-gallery-submit" class="btn-secondary" type="button">사과 전시하기</button>
+          <a id="btn-gallery-view" class="btn-secondary" href="gallery.html">사과 구경하기</a>
+        </div>
+        <p class="result-note" id="gallery-note" role="status" aria-live="polite" hidden></p>
         <div class="result-secondary">
           <button id="btn-save" class="btn-secondary" type="button">내 사과 저장</button>
           <button id="btn-restart" class="btn-secondary" type="button">다시 깎기</button>
@@ -124,24 +129,26 @@
   </div>
 
   <!-- 순서 고정: three → config → assets-data → assets → rotation → apple → scene → knife → blade → cutting → input → play → main -->
-  <script src="vendor/three.min.js"></script>
-  <script src="src/game/config.js"></script>
-  <script src="src/game/assets-data.js"></script>
-  <script src="src/game/fruits.js"></script>
-  <script src="src/game/assets.js"></script>
-  <script src="src/game/rotation.js"></script>
-  <script src="src/game/apple.js"></script>
-  <script src="src/game/scene.js"></script>
-  <script src="src/game/knife.js"></script>
-  <script src="src/game/blade.js"></script>
-  <script src="src/game/cutting.js"></script>
-  <script src="src/game/ribbon.js"></script>
-  <script src="src/game/scoring.js"></script>
-  <script src="src/game/share.js"></script>
-  <script src="src/game/battle.js"></script>
-  <script src="src/game/input.js"></script>
-  <script src="src/game/play.js"></script>
-  <script src="src/main.js"></script>
+  <script src="vendor/three.min.js?v=20261029"></script>
+  <script src="src/game/config.js?v=20261029"></script>
+  <script src="src/game/assets-data.js?v=20261029"></script>
+  <script src="src/game/fruits.js?v=20261029"></script>
+  <script src="src/game/assets.js?v=20261029"></script>
+  <script src="src/game/rotation.js?v=20261029"></script>
+  <script src="src/game/apple.js?v=20261029"></script>
+  <script src="src/game/scene.js?v=20261029"></script>
+  <script src="src/game/knife.js?v=20261029"></script>
+  <script src="src/game/blade.js?v=20261029"></script>
+  <script src="src/game/cutting.js?v=20261029"></script>
+  <script src="src/game/ribbon.js?v=20261029"></script>
+  <script src="src/game/scoring.js?v=20261029"></script>
+  <script src="src/gallery/gallery-config.js?v=20261029"></script>
+  <script src="src/game/share.js?v=20261029"></script>
+  <script src="src/game/gallery-submit.js?v=20261029"></script>
+  <script src="src/game/battle.js?v=20261029"></script>
+  <script src="src/game/input.js?v=20261029"></script>
+  <script src="src/game/play.js?v=20261029"></script>
+  <script src="src/main.js?v=20261029"></script>
 <script>window.SITE_ANALYTICS_PROJECT='peel-apple-once';</script>
 <script src="https://kimh6ram-dot.github.io/_parking/analytics.js"></script>
 </body>
